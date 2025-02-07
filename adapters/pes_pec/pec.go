@@ -6,6 +6,8 @@ import (
 	"image/color"
 	"io"
 	"os"
+
+	"github.com/emblib/adapters"
 )
 
 /*
@@ -37,11 +39,11 @@ func (p Preamble) SizeOf() uint32 {
 
 // Dump writes out this Struct
 func (p Preamble) Dump() {
-	fmt.Fprintf(fh, "Preamble:\n")
-	fmt.Fprintf(fh, "\tId: %s\n", p.Id)
-	fmt.Fprintf(fh, "\tVer: %s\n", p.Ver)
-	fmt.Fprintf(fh, "\tOffset: %d 0x%X\n", p.Offset, p.Offset)
-	fmt.Fprintf(fh, "\tcount: %d 0x%X\n", p.count, p.count)
+	fmt.Printf("Preamble:\n")
+	fmt.Printf("\tId: %s\n", p.Id)
+	fmt.Printf("\tVer: %s\n", p.Ver)
+	fmt.Printf("\tOffset: %d 0x%X\n", p.Offset, p.Offset)
+	fmt.Printf("\tcount: %d 0x%X\n", p.count, p.count)
 }
 
 // H_1 is version 1 header struct of a pes file
@@ -67,11 +69,11 @@ func (h1 H_1) SizeOf() uint32 {
 
 // Dump writes out this Struct
 func (p H_1) Dump() {
-	fmt.Fprintf(fh, "Header1:\n")
-	fmt.Fprintf(fh, "\tHoop: %d\n", p.Hoop)
-	fmt.Fprintf(fh, "\tEDA: %d\n", p.EDA)
-	fmt.Fprintf(fh, "\tBlk_count: %d 0x%X\n", p.Blk_count, p.Blk_count)
-	fmt.Fprintf(fh, "\tcount: %d 0x%X\n", p.count, p.count)
+	fmt.Printf("Header1:\n")
+	fmt.Printf("\tHoop: %d\n", p.Hoop)
+	fmt.Printf("\tEDA: %d\n", p.EDA)
+	fmt.Printf("\tBlk_count: %d 0x%X\n", p.Blk_count, p.Blk_count)
+	fmt.Printf("\tcount: %d 0x%X\n", p.count, p.count)
 }
 
 // H_2 stores the version 2 header
@@ -99,12 +101,12 @@ func (h2 H_2) SizeOf() uint32 {
 
 // Dump writes out this Struct
 func (p H_2) Dump() {
-	fmt.Fprintf(fh, "Header2:\n")
-	fmt.Fprintf(fh, "\tHoopW: %d 0x%X\n", p.HoopW, p.HoopW)
-	fmt.Fprintf(fh, "\tHoopH: %d 0x%X\n", p.HoopH, p.HoopH)
-	fmt.Fprintf(fh, "\tRot: %d 0x%X\n", p.Rot, p.Rot)
-	fmt.Fprintf(fh, "\tunk: 0x%X\n", p.unk)
-	fmt.Fprintf(fh, "\tcount: %d 0x%X\n", p.count, p.count)
+	fmt.Printf("Header2:\n")
+	fmt.Printf("\tHoopW: %d 0x%X\n", p.HoopW, p.HoopW)
+	fmt.Printf("\tHoopH: %d 0x%X\n", p.HoopH, p.HoopH)
+	fmt.Printf("\tRot: %d 0x%X\n", p.Rot, p.Rot)
+	fmt.Printf("\tunk: 0x%X\n", p.unk)
+	fmt.Printf("\tcount: %d 0x%X\n", p.count, p.count)
 }
 
 // H_3 version three of the header
@@ -136,14 +138,14 @@ func (h3 H_3) SizeOf() uint32 {
 
 // Dump writes out this Struct
 func (p H_3) Dump() {
-	fmt.Fprintf(fh, "Header3:\n")
-	fmt.Fprintf(fh, "\tu1: %d 0x%X\n", p.u1, p.u1)
-	fmt.Fprintf(fh, "\tSubV: %d 0x%X\n", p.SubV, p.SubV)
-	fmt.Fprintf(fh, "\tHoopW: %d 0x%X\n", p.HoopW, p.HoopW)
-	fmt.Fprintf(fh, "\tHoopH: %d 0x%X\n", p.HoopH, p.HoopH)
-	fmt.Fprintf(fh, "\tRot: %d 0x%X\n", p.Rot, p.Rot)
-	fmt.Fprintf(fh, "\tu2: %d 0x%X\n", p.u2, p.u2)
-	fmt.Fprintf(fh, "\tcount: %d 0x%X\n", p.count, p.count)
+	fmt.Printf("Header3:\n")
+	fmt.Printf("\tu1: %d 0x%X\n", p.u1, p.u1)
+	fmt.Printf("\tSubV: %d 0x%X\n", p.SubV, p.SubV)
+	fmt.Printf("\tHoopW: %d 0x%X\n", p.HoopW, p.HoopW)
+	fmt.Printf("\tHoopH: %d 0x%X\n", p.HoopH, p.HoopH)
+	fmt.Printf("\tRot: %d 0x%X\n", p.Rot, p.Rot)
+	fmt.Printf("\tu2: %d 0x%X\n", p.u2, p.u2)
+	fmt.Printf("\tcount: %d 0x%X\n", p.count, p.count)
 }
 
 // H_4 is version 4 of the header
@@ -186,17 +188,17 @@ func (h4 H_4) SizeOf() uint32 {
 
 // Dump writes out this Struct
 func (p H_4) Dump() {
-	fmt.Fprintf(fh, "Header4:\n")
-	fmt.Fprintf(fh, "\tu1: %d 0x%X\n", p.u1, p.u1)
-	fmt.Fprintf(fh, "\tSubV: %d 0x%X\n", p.SubV, p.SubV)
-	fmt.Fprintf(fh, "\tDesc: ")
-	fmt.Fprintln(fh, p.Desc)
-	fmt.Fprintf(fh, "\tu2: %d 0x%X\n", p.u2, p.u2)
-	fmt.Fprintf(fh, "\tHoopW: %d 0x%X\n", p.HoopW, p.HoopW)
-	fmt.Fprintf(fh, "\tHoopH: %d 0x%X\n", p.HoopH, p.HoopH)
-	fmt.Fprintf(fh, "\tRot: %d 0x%X\n", p.Rot, p.Rot)
-	fmt.Fprintf(fh, "\tu3: 0x%X\n", p.u3)
-	fmt.Fprintf(fh, "\tcount: %d 0x%X\n", p.count, p.count)
+	fmt.Printf("Header4:\n")
+	fmt.Printf("\tu1: %d 0x%X\n", p.u1, p.u1)
+	fmt.Printf("\tSubV: %d 0x%X\n", p.SubV, p.SubV)
+	fmt.Printf("\tDesc: ")
+	fmt.Println(p.Desc)
+	fmt.Printf("\tu2: %d 0x%X\n", p.u2, p.u2)
+	fmt.Printf("\tHoopW: %d 0x%X\n", p.HoopW, p.HoopW)
+	fmt.Printf("\tHoopH: %d 0x%X\n", p.HoopH, p.HoopH)
+	fmt.Printf("\tRot: %d 0x%X\n", p.Rot, p.Rot)
+	fmt.Printf("\tu3: 0x%X\n", p.u3)
+	fmt.Printf("\tcount: %d 0x%X\n", p.count, p.count)
 }
 
 //
@@ -230,11 +232,11 @@ func (h *HP_1) SizeOf() uint32 {
 
 // Dump writes out this Struct
 func (h HP_1) Dump() {
-	fmt.Fprintf(fh, "\tHoopInd: %d 0x%X\n", h.HoopInd, h.HoopInd)
-	fmt.Fprintf(fh, "\tSubV: %d 0x%X\n", h.SubV, h.SubV)
-	fmt.Fprintf(fh, "\tDesc: ")
-	fmt.Fprintln(fh, h.Desc)
-	fmt.Fprintf(fh, "\tHoopChg: %d 0x%X\n", h.HoopChg, h.HoopChg)
+	fmt.Printf("\tHoopInd: %d 0x%X\n", h.HoopInd, h.HoopInd)
+	fmt.Printf("\tSubV: %d 0x%X\n", h.SubV, h.SubV)
+	fmt.Printf("\tDesc: ")
+	fmt.Println(h.Desc)
+	fmt.Printf("\tHoopChg: %d 0x%X\n", h.HoopChg, h.HoopChg)
 }
 
 // HP_2 is second section of headers 5 and 6
@@ -260,9 +262,9 @@ func (h *HP_2) SizeOf() uint32 {
 
 // Dump writes out this Struct
 func (h HP_2) Dump() {
-	fmt.Fprintf(fh, "\tHoopW: %d 0x%X\n", h.HoopW, h.HoopW)
-	fmt.Fprintf(fh, "\tHoopH: %d 0x%X\n", h.HoopH, h.HoopH)
-	fmt.Fprintf(fh, "\tRot: %d 0x%X\n", h.Rot, h.Rot)
+	fmt.Printf("\tHoopW: %d 0x%X\n", h.HoopW, h.HoopW)
+	fmt.Printf("\tHoopH: %d 0x%X\n", h.HoopH, h.HoopH)
+	fmt.Printf("\tRot: %d 0x%X\n", h.Rot, h.Rot)
 }
 
 // HP_3 is third section of headers 5 and 6
@@ -305,17 +307,17 @@ func (h *HP_3) SizeOf() uint32 {
 
 // Dump writes out this Struct
 func (h HP_3) Dump() {
-	fmt.Fprintf(fh, "\tBackground: %d 0x%X\n", h.BG, h.BG)
-	fmt.Fprintf(fh, "\tForeground: %d 0x%X\n", h.FG, h.FG)
-	fmt.Fprintf(fh, "\tGrid: %d 0x%X\n", h.Grid, h.Grid)
-	fmt.Fprintf(fh, "\tAxes: %d 0x%X\n", h.Axes, h.Axes)
-	fmt.Fprintf(fh, "\tSnap: %d 0x%X\n", h.Snap, h.Snap)
-	fmt.Fprintf(fh, "\tInterval: %d 0x%X\n", h.Interv, h.Interv)
-	fmt.Fprintf(fh, "\tu1: %d 0x%X\n", h.u1, h.u1)
-	fmt.Fprintf(fh, "\tOptEntEx: %d 0x%X\n", h.OptEntEx, h.OptEntEx)
-	fmt.Fprintf(fh, "\tImg Path Len: %d 0x%X\n", h.Imlen, h.Imlen)
-	fmt.Fprintf(fh, "\tImg Path: %s\n", h.Impath)
-	fmt.Fprintf(fh, "\tAffline: %X\n", h.Affline)
+	fmt.Printf("\tBackground: %d 0x%X\n", h.BG, h.BG)
+	fmt.Printf("\tForeground: %d 0x%X\n", h.FG, h.FG)
+	fmt.Printf("\tGrid: %d 0x%X\n", h.Grid, h.Grid)
+	fmt.Printf("\tAxes: %d 0x%X\n", h.Axes, h.Axes)
+	fmt.Printf("\tSnap: %d 0x%X\n", h.Snap, h.Snap)
+	fmt.Printf("\tInterval: %d 0x%X\n", h.Interv, h.Interv)
+	fmt.Printf("\tu1: %d 0x%X\n", h.u1, h.u1)
+	fmt.Printf("\tOptEntEx: %d 0x%X\n", h.OptEntEx, h.OptEntEx)
+	fmt.Printf("\tImg Path Len: %d 0x%X\n", h.Imlen, h.Imlen)
+	fmt.Printf("\tImg Path: %s\n", h.Impath)
+	fmt.Printf("\tAffline: %X\n", h.Affline)
 }
 
 // HP_4 is fourth section of headers 5 and 6
@@ -327,7 +329,7 @@ type HP_4 struct {
 	FeathCount uint16
 	Feather    []byte
 	ColSects   uint16
-	Colors     []ColorSub
+	Colors     []adapters.ColorSub
 	Obj        uint16
 	count      uint32
 }
@@ -367,17 +369,17 @@ func (h *HP_4) SizeOf() uint32 {
 
 // Dump writes out this Struct
 func (h HP_4) Dump() {
-	fmt.Fprintf(fh, "\tFillCount: %d 0x%X\n", h.FillCount, h.FillCount)
-	fmt.Fprintf(fh, "\tFill: %X", h.Fill)
-	fmt.Fprintf(fh, "\tMotCount: %d 0x%X\n", h.MotCount, h.MotCount)
-	fmt.Fprintf(fh, "\tMotif: %X", h.Motif)
-	fmt.Fprintf(fh, "\tFeatherCount: %d 0x%X\n", h.FeathCount, h.FeathCount)
-	fmt.Fprintf(fh, "\tFeather: %X\n", h.Feather)
-	fmt.Fprintf(fh, "\tColorSects: %d 0x%X\n", h.ColSects, h.ColSects)
+	fmt.Printf("\tFillCount: %d 0x%X\n", h.FillCount, h.FillCount)
+	fmt.Printf("\tFill: %X", h.Fill)
+	fmt.Printf("\tMotCount: %d 0x%X\n", h.MotCount, h.MotCount)
+	fmt.Printf("\tMotif: %X", h.Motif)
+	fmt.Printf("\tFeatherCount: %d 0x%X\n", h.FeathCount, h.FeathCount)
+	fmt.Printf("\tFeather: %X\n", h.Feather)
+	fmt.Printf("\tColorSects: %d 0x%X\n", h.ColSects, h.ColSects)
 	for i := 0; i < int(h.ColSects); i++ {
 		h.Colors[i].Dump()
 	}
-	fmt.Fprintf(fh, "\tObjects: %d 0x%X\n", h.Obj, h.Obj)
+	fmt.Printf("\tObjects: %d 0x%X\n", h.Obj, h.Obj)
 }
 
 // H_5 version 5 of the header
@@ -415,12 +417,12 @@ func (h H_5) SizeOf() uint32 {
 
 // Dump displays this struct
 func (h H_5) Dump() {
-	fmt.Fprintln(fh, "Header5:")
+	fmt.Println("Header5:")
 	h.HP_1.Dump()
 	h.HP_2.Dump()
 	h.HP_3.Dump()
 	h.HP_4.Dump()
-	fmt.Fprintf(fh, "\tcount: %d 0x%X\n", h.count, h.count)
+	fmt.Printf("\tcount: %d 0x%X\n", h.count, h.count)
 }
 
 // H_6 version header
@@ -478,15 +480,15 @@ func (h6 H_6) SizeOf() uint32 {
 
 // Dump displays this struct
 func (h H_6) Dump() {
-	fmt.Fprintln(fh, "Header6:")
+	fmt.Println("Header6:")
 	h.HP_1.Dump()
-	fmt.Fprintf(fh, "\tCust: %d 0x%X\n", h.Cust, h.Cust)
+	fmt.Printf("\tCust: %d 0x%X\n", h.Cust, h.Cust)
 	h.HP_2.Dump()
-	fmt.Fprintf(fh, "\tDWidth: %d 0x%X\n", h.DWidth, h.DWidth)
-	fmt.Fprintf(fh, "\tDHeight: %d 0x%X\n", h.DHeight, h.DHeight)
-	fmt.Fprintf(fh, "\tDPWidth: %d 0x%X\n", h.DPWidth, h.DPWidth)
-	fmt.Fprintf(fh, "\tDPHeight: %d 0x%X\n", h.DPHeight, h.DPHeight)
-	fmt.Fprintf(fh, "\tu1: %d 0x%X\n", h.u1, h.u1)
+	fmt.Printf("\tDWidth: %d 0x%X\n", h.DWidth, h.DWidth)
+	fmt.Printf("\tDHeight: %d 0x%X\n", h.DHeight, h.DHeight)
+	fmt.Printf("\tDPWidth: %d 0x%X\n", h.DPWidth, h.DPWidth)
+	fmt.Printf("\tDPHeight: %d 0x%X\n", h.DPHeight, h.DPHeight)
+	fmt.Printf("\tu1: %d 0x%X\n", h.u1, h.u1)
 	h.HP_3.Dump()
 	h.HP_4.Dump()
 }
@@ -593,8 +595,8 @@ func (h Header) Dump() {
 	case "0060":
 		h.H6.Dump()
 	}
-	fmt.Fprintf(fh, "\ttail: %x\n", h.tail)
-	fmt.Fprintf(fh, "\tcount: %d 0x%X\n", h.count, h.count)
+	fmt.Printf("\ttail: %x\n", h.tail)
+	fmt.Printf("\tcount: %d 0x%X\n", h.count, h.count)
 }
 
 // Helpers for header parsing
@@ -632,59 +634,6 @@ func parse_desc(bin []byte) (uint32, *map[string]string) {
 	count = count + uint32(len)
 
 	return count, &meta
-}
-
-// Dump writes out this Struct
-func (p ColorSub) Dump() {
-	fmt.Fprintf(fh, "\t\tColorSub:\n")
-	fmt.Fprintf(fh, "\t\t\tCodeLen: %d 0x%X\n", p.CodeLen, p.CodeLen)
-	fmt.Fprintf(fh, "\t\t\tCode: 0x%X\n", p.Code)
-	rgba := color.RGBAModel.Convert(p.Color).(color.RGBA)
-	fmt.Fprintf(fh, "\t\t\tColor: (%d, %d, %d, %d)\n", rgba.R, rgba.G, rgba.B, rgba.A)
-	fmt.Fprintf(fh, "\t\t\tu1: %d 0x%X\n", p.u1, p.u1)
-	fmt.Fprintf(fh, "\t\t\tDescLen: %d 0x%X\n", p.DescLen, p.DescLen)
-	fmt.Fprintf(fh, "\t\t\tDesc: %s\n", p.Desc)
-	fmt.Fprintf(fh, "\t\t\tBrandLen: %d 0x%X\n", p.BrandLen, p.BrandLen)
-	fmt.Fprintf(fh, "\t\t\tBrand: %s\n", p.Brand)
-	fmt.Fprintf(fh, "\t\t\tChartLen: %d 0x%X\n", p.ChartLen, p.ChartLen)
-	fmt.Fprintf(fh, "\t\t\tChart: %s\n", p.Chart)
-	fmt.Fprintf(fh, "\t\t\tcount: %d 0x%X\n", p.count, p.count)
-}
-
-// parse_color_sub parses in a color structure
-func parse_color_sub(bin []byte) (uint32, ColorSub) {
-	var col ColorSub
-	var count uint32
-	count = 0
-	col.CodeLen = bin[count]
-	count++
-	col.Code = bin[count : count+uint32(col.CodeLen)]
-	count += uint32(col.CodeLen)
-	red := bin[count]
-	count++
-	green := bin[count]
-	count++
-	blue := bin[count]
-	count++
-	col.Color = color.RGBA{red, green, blue, 255}
-	col.u1 = bin[count]
-	count++
-	col.ColType = binary.LittleEndian.Uint32(bin[count : count+4])
-	count += 4
-	col.DescLen = bin[count]
-	count++
-	col.Desc = string(bin[count : count+uint32(col.DescLen)])
-	count += uint32(col.DescLen)
-	col.BrandLen = bin[count]
-	count++
-	col.Brand = string(bin[count : count+uint32(col.BrandLen)])
-	count += uint32(col.BrandLen)
-	col.ChartLen = bin[count]
-	count++
-	col.Chart = string(bin[count : count+uint32(col.ChartLen)])
-	count += uint32(col.ChartLen)
-	col.count = count
-	return count, col
 }
 
 /*
@@ -734,17 +683,17 @@ func (h H1) SizeOf() uint32 {
 }
 
 func (h *H1) Dump() {
-	fmt.Fprintf(fh, "Header1:\n")
-	fmt.Fprintf(fh, "\tLabel: %s\n", h.Label)
-	fmt.Fprintf(fh, "\tRet: %d 0x%X\n", h.Ret, h.Ret)
-	fmt.Fprintf(fh, "\tu1: %X\n", h.u1)
-	fmt.Fprintf(fh, "\tTWidth: %d 0x%X\n", h.TWidth, h.TWidth)
-	fmt.Fprintf(fh, "\tTHeight: %d 0x%X\n", h.THeight, h.THeight)
-	fmt.Fprintf(fh, "\tu2: %X\n", h.u2)
-	fmt.Fprintf(fh, "\tNumCols: %d 0x%X\n", h.NoCol, h.NoCol)
-	fmt.Fprintf(fh, "\tColIdx: %X\n", h.ColIdx)
-	fmt.Fprintf(fh, "\tPad: %X\n", h.Pad)
-	fmt.Fprintf(fh, "\tcount: %d 0x%X\n", h.count, h.count)
+	fmt.Printf("Header1:\n")
+	fmt.Printf("\tLabel: %s\n", h.Label)
+	fmt.Printf("\tRet: %d 0x%X\n", h.Ret, h.Ret)
+	fmt.Printf("\tu1: %X\n", h.u1)
+	fmt.Printf("\tTWidth: %d 0x%X\n", h.TWidth, h.TWidth)
+	fmt.Printf("\tTHeight: %d 0x%X\n", h.THeight, h.THeight)
+	fmt.Printf("\tu2: %X\n", h.u2)
+	fmt.Printf("\tNumCols: %d 0x%X\n", h.NoCol, h.NoCol)
+	fmt.Printf("\tColIdx: %X\n", h.ColIdx)
+	fmt.Printf("\tPad: %X\n", h.Pad)
+	fmt.Printf("\tcount: %d 0x%X\n", h.count, h.count)
 }
 
 type H2 struct {
@@ -779,14 +728,14 @@ func (h H2) SizeOf() uint32 {
 }
 
 func (h *H2) Dump() {
-	fmt.Fprintf(fh, "Header2:\n")
-	fmt.Fprintf(fh, "\tu1: %d 0x%x\n", h.u1, h.u1)
-	fmt.Fprintf(fh, "\tTOffs: %d 0x%x\n", h.TOffs, h.TOffs)
-	fmt.Fprintf(fh, "\tu2: %d 0x%X\n", h.u2, h.u2)
-	fmt.Fprintf(fh, "\tWidth: %d 0x%X\n", h.Width, h.Width)
-	fmt.Fprintf(fh, "\tHeight: %d 0x%X\n", h.Height, h.Height)
-	fmt.Fprintf(fh, "\tu3: %X\n", h.u3)
-	fmt.Fprintf(fh, "\tcount: %d 0x%X\n", h.count, h.count)
+	fmt.Printf("Header2:\n")
+	fmt.Printf("\tu1: %d 0x%x\n", h.u1, h.u1)
+	fmt.Printf("\tTOffs: %d 0x%x\n", h.TOffs, h.TOffs)
+	fmt.Printf("\tu2: %d 0x%X\n", h.u2, h.u2)
+	fmt.Printf("\tWidth: %d 0x%X\n", h.Width, h.Width)
+	fmt.Printf("\tHeight: %d 0x%X\n", h.Height, h.Height)
+	fmt.Printf("\tu3: %X\n", h.u3)
+	fmt.Printf("\tcount: %d 0x%X\n", h.count, h.count)
 }
 
 /*
@@ -829,13 +778,13 @@ func pec_decode_cmd(c int) string {
 }
 
 func (p PCommand) Dump() {
-	fmt.Fprintf(fh, "\tCommand1: %s\n", decode_cmd(p.Command1))
-	fmt.Fprintf(fh, "\tCommand2: %s\n", decode_cmd(p.Command2))
+	fmt.Printf("\tCommand1: %s\n", decode_cmd(p.Command1))
+	fmt.Printf("\tCommand2: %s\n", decode_cmd(p.Command2))
 	fmt.Printf("%08b\n", p.Dx)
-	fmt.Fprintf(fh, "\tDx : %f 0x%X\n", p.Dx, p.Dx)
+	fmt.Printf("\tDx : %f 0x%X\n", p.Dx, p.Dx)
 	fmt.Printf("%08b\n", p.Dy)
-	fmt.Fprintf(fh, "\tDy : %f 0x%X\n", p.Dy, p.Dy)
-	fmt.Fprintf(fh, "\tColor : %d 0x%X\n", p.Color, p.Color)
+	fmt.Printf("\tDy : %f 0x%X\n", p.Dy, p.Dy)
+	fmt.Printf("\tColor : %d 0x%X\n", p.Color, p.Color)
 }
 
 func next_chunk(bin []byte) []byte {
@@ -992,7 +941,7 @@ func (p *Payload) decode_pes(h Header) {
 	}
 }
 
-func read_pes(file string) *Payload {
+func Read_pes(file string) *Payload {
 	var pay Payload
 
 	// get the actual file contents

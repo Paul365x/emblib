@@ -5,17 +5,18 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"github.com/emblib/adapters/pes_pec"
 )
 
 func main() {
-	pay := read_pes("Clef.pes")
+	pay := pes_pec.Read_pes("Clef.pes")
 	cmds := pay.Cmds
 
 	myApp := app.New()
 	w := myApp.NewWindow("Lines")
-	c_prev := PCommand{
-		Command1: Stitch,
-		Command2: Stitch,
+	c_prev := pes_pec.PCommand{
+		Command1: pes_pec.Stitch,
+		Command2: pes_pec.Stitch,
 		Dx:       0,
 		Dy:       0,
 		Color:    0,

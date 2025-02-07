@@ -1,6 +1,6 @@
 module github.com/emblib
 
-go 1.23.3
+go 1.22.4
 
 require fyne.io/fyne/v2 v2.5.4
 
@@ -35,4 +35,5 @@ require (
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+//	github.com/Paul365x/emblib  //indirect
 )
