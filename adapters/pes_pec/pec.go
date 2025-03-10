@@ -1050,45 +1050,70 @@ func convert_colors(c []shared.ColorSub, p []byte) []color.Color {
 }
 
 var (
-	PrussianBlueBr = color.RGBA{0x1a, 0x0a, 0x94, 255}
-	BlueBr         = color.RGBA{0x0f, 0x75, 0xff, 255}
-	TealGreenBr    = color.RGBA{0x00, 0x93, 0x4c, 255}
-	CFBlueBr       = color.RGBA{0xba, 0xbd, 0xfe, 255}
-	RedBr          = color.RGBA{0xec, 0x00, 0x00, 255}
-	RedBrownBr     = color.RGBA{0xe4, 0x99, 0x5a, 255}
-	MagentaBr      = color.RGBA{0xcc, 0x48, 0xab, 255}
-	LightLilacBr   = color.RGBA{0xfd, 0xc4, 0xfa, 255}
-	LilacBr        = color.RGBA{0xdd, 0x84, 0xab, 255}
-	MintGreenBr    = color.RGBA{0x6b, 0xd3, 0x8a, 255}
-	DeepGoldBr     = color.RGBA{0xe4, 0xa9, 0x45, 255}
-	OrangeBr       = color.RGBA{0xff, 0xbd, 0x42, 255}
-	YellowBr       = color.RGBA{0xff, 0xe6, 0x00, 255}
-	LimeGreenBr    = color.RGBA{0x6c, 0xd9, 0x00, 255}
-	BrassBr        = color.RGBA{0xc1, 0xa9, 0x41, 255}
-	SilverBr       = color.RGBA{0xb5, 0xad, 0x97, 255}
-	RussetBrownBr  = color.RGBA{0xba, 0x9c, 0x5f, 255}
-	CreamBrownBr   = color.RGBA{0xfa, 0xf5, 0x9e, 255}
-	PewterBr       = color.RGBA{0x80, 0x80, 0x80, 255}
-	BlackBr        = color.RGBA{0x0, 0x0, 0x0, 255}
-	UltraMarineBr  = color.RGBA{0x00, 0x1c, 0xdf, 255}
-	RoyaPurpleBr   = color.RGBA{0xdf, 0x00, 0xb8, 255}
-	DarkGrayBr     = color.RGBA{0x62, 0x62, 0x62, 255}
-	DarkBrownBr    = color.RGBA{0x69, 0x26, 0x0d, 255}
-	DeepRoseBr     = color.RGBA{0xff, 0x00, 0x60, 255}
-	LightBrownBr   = color.RGBA{0xbf, 0x82, 0x00, 255}
-	SalmonPinkBr   = color.RGBA{0xf3, 0x91, 0x78, 255}
-	VermilionBr    = color.RGBA{0xff, 0x68, 0x05, 255}
-	WhiteBr        = color.RGBA{0xf0, 0xf0, 0xf0, 255}
-	VioletBr       = color.RGBA{0xc8, 0x32, 0xcd, 255}
-	SeaCrestBr     = color.RGBA{0xb0, 0xbf, 0x9b, 255}
-	SkyBlueBr      = color.RGBA{0x65, 0xbf, 0xeb, 255}
-
-	PumpkinBr     = color.RGBA{0xff, 0xba, 0x04, 255}
-	CreamYellowBr = color.RGBA{0xff, 0xf0, 0x6c, 255}
-	KhakiBr       = color.RGBA{0xfe, 0xca, 0x15, 255}
-	ClayBrownBr   = color.RGBA{0xf3, 0x81, 0x01, 255}
-	LeafGreenBr   = color.RGBA{0x37, 0xa9, 0x23, 255}
-	PeacockBlueBr = color.RGBA{0x23, 0x46, 0x5f, 255}
+	PrussianBlueBr   = color.RGBA{0x1a, 0x0a, 0x94, 255}
+	BlueBr           = color.RGBA{0x0f, 0x75, 0xff, 255}
+	TealGreenBr      = color.RGBA{0x00, 0x93, 0x4c, 255}
+	CFBlueBr         = color.RGBA{0xba, 0xbd, 0xfe, 255}
+	RedBr            = color.RGBA{0xec, 0x00, 0x00, 255}
+	RedBrownBr       = color.RGBA{0xe4, 0x99, 0x5a, 255}
+	MagentaBr        = color.RGBA{0xcc, 0x48, 0xab, 255}
+	LightLilacBr     = color.RGBA{0xfd, 0xc4, 0xfa, 255}
+	LilacBr          = color.RGBA{0xdd, 0x84, 0xab, 255}
+	MintGreenBr      = color.RGBA{0x6b, 0xd3, 0x8a, 255}
+	DeepGoldBr       = color.RGBA{0xe4, 0xa9, 0x45, 255}
+	OrangeBr         = color.RGBA{0xff, 0xbd, 0x42, 255}
+	YellowBr         = color.RGBA{0xff, 0xe6, 0x00, 255}
+	LimeGreenBr      = color.RGBA{0x6c, 0xd9, 0x00, 255}
+	BrassBr          = color.RGBA{0xc1, 0xa9, 0x41, 255}
+	SilverBr         = color.RGBA{0xb5, 0xad, 0x97, 255}
+	RussetBrownBr    = color.RGBA{0xba, 0x9c, 0x5f, 255}
+	CreamBrownBr     = color.RGBA{0xfa, 0xf5, 0x9e, 255}
+	PewterBr         = color.RGBA{0x80, 0x80, 0x80, 255}
+	BlackBr          = color.RGBA{0x0, 0x0, 0x0, 255}
+	UltraMarineBr    = color.RGBA{0x00, 0x1c, 0xdf, 255}
+	RoyaPurpleBr     = color.RGBA{0xdf, 0x00, 0xb8, 255}
+	DarkGrayBr       = color.RGBA{0x62, 0x62, 0x62, 255}
+	DarkBrownBr      = color.RGBA{0x69, 0x26, 0x0d, 255}
+	DeepRoseBr       = color.RGBA{0xff, 0x00, 0x60, 255}
+	LightBrownBr     = color.RGBA{0xbf, 0x82, 0x00, 255}
+	SalmonPinkBr     = color.RGBA{0xf3, 0x91, 0x78, 255}
+	VermilionBr      = color.RGBA{0xff, 0x68, 0x05, 255}
+	WhiteBr          = color.RGBA{0xf0, 0xf0, 0xf0, 255}
+	VioletBr         = color.RGBA{0xc8, 0x32, 0xcd, 255}
+	SeaCrestBr       = color.RGBA{0xb0, 0xbf, 0x9b, 255}
+	SkyBlueBr        = color.RGBA{0x65, 0xbf, 0xeb, 255}
+	PumpkinBr        = color.RGBA{0xff, 0xba, 0x04, 255}
+	CreamYellowBr    = color.RGBA{0xff, 0xf0, 0x6c, 255}
+	KhakiBr          = color.RGBA{0xfe, 0xca, 0x15, 255}
+	ClayBrownBr      = color.RGBA{0xf3, 0x81, 0x01, 255}
+	LeafGreenBr      = color.RGBA{0x37, 0xa9, 0x23, 255}
+	PeacockBlueBr    = color.RGBA{0x23, 0x46, 0x5f, 255}
+	GrayBr           = color.RGBA{0xa6, 0xa6, 0x95, 255}
+	WarmGrayBr       = color.RGBA{0xce, 0xbf, 0xa6, 255}
+	DarkOliveBr      = color.RGBA{0x96, 0xaa, 0x02, 255}
+	LinenBr          = color.RGBA{0xff, 0xe3, 0xc6, 255}
+	PinkBr           = color.RGBA{0xff, 0x99, 0xd7, 255}
+	DeepGreenBr      = color.RGBA{0x00, 0x70, 0x04, 255}
+	LavenderBr       = color.RGBA{0xed, 0xcc, 0xfb, 255}
+	WisteriaVioletBr = color.RGBA{0xc0, 0x89, 0xd8, 255}
+	BeigeBr          = color.RGBA{0xe7, 0xd9, 0xb4, 255}
+	CarmineBr        = color.RGBA{0xe9, 0x0e, 0x86, 255}
+	AmberRedBr       = color.RGBA{0xcf, 0x68, 0x29, 255}
+	OliveGreenBr     = color.RGBA{0x40, 0x86, 0x15, 255}
+	DarkFuchsiaBr    = color.RGBA{0xdb, 0x17, 0x97, 255}
+	TangerineBr      = color.RGBA{0xff, 0xa7, 0x04, 255}
+	LightBlueBr      = color.RGBA{0xb9, 0xff, 0xff, 255}
+	EmeraldGreenBr   = color.RGBA{0x22, 0x89, 0x27, 255}
+	PurpleBr         = color.RGBA{0xb6, 0x12, 0xcd, 255}
+	MossGreenBr      = color.RGBA{0x00, 0xaa, 0x00, 255}
+	FleshPinkBr      = color.RGBA{0xfe, 0xa9, 0xdc, 255}
+	HarvestGoldBr    = color.RGBA{0xfe, 0xd5, 0x10, 255}
+	ElectricBlueBr   = color.RGBA{0x00, 0x97, 0xdf, 255}
+	LemonYellowBr    = color.RGBA{0xff, 0xff, 0x84, 255}
+	FreshGreenBr     = color.RGBA{0xcf, 0xe7, 0x74, 255}
+	AppliqueMBr      = color.RGBA{0xff, 0xc8, 0x64, 255}
+	AppliquePBr      = color.RGBA{0xff, 0xc8, 0xc8, 255}
+	AppliqueBr       = color.RGBA{0xff, 0xc8, 0xc8, 255}
 )
 
 func Brother_set() *map[string]color.Color {
@@ -1131,6 +1156,32 @@ func Brother_set() *map[string]color.Color {
 		"Br_ClayBrown":      ClayBrownBr,
 		"Br_LeafGreen":      LeafGreenBr,
 		"Br_PeacockBlue":    PeacockBlueBr,
+		"Br_Gray":           GrayBr,
+		"Br_WarmGray":       WarmGrayBr,
+		"Br_DarkOlive":      DarkOliveBr,
+		"Br_Linen":          LinenBr,
+		"Br_Pink":           PinkBr,
+		"Br_DeepGreen":      DeepGreenBr,
+		"Br_Lavender":       LavenderBr,
+		"Br_Wisteria":       WisteriaVioletBr,
+		"Br_Beige":          BeigeBr,
+		"Br_Carmine":        CarmineBr,
+		"Br_AmberRed":       AmberRedBr,
+		"Br_OliveGreen":     OliveGreenBr,
+		"Br_DarkFuchsia":    DarkFuchsiaBr,
+		"Br_Tangerine":      TangerineBr,
+		"Br_LightBlue":      LightBlueBr,
+		"Br_EmeraldGreen":   EmeraldGreenBr,
+		"Br_Purple":         PurpleBr,
+		"Br_MossGreen":      MossGreenBr,
+		"Br_FleshPink":      FleshPinkBr,
+		"Br_HarvestGold":    HarvestGoldBr,
+		"Br_ElectricBlue":   ElectricBlueBr,
+		"Br_LemonYellow":    LemonYellowBr,
+		"Br_FreshGreen":     FreshGreenBr,
+		"Br_AppliqueM":      AppliqueMBr,
+		"Br_AppliqueP":      AppliquePBr,
+		"Br_Applique":       AppliqueBr,
 	}
 } //brother_set()
 
@@ -1175,5 +1226,31 @@ func Brother_select() []color.Color {
 		ClayBrownBr,
 		LeafGreenBr,
 		PeacockBlueBr,
+		GrayBr,
+		WarmGrayBr,
+		DarkOliveBr,
+		LinenBr,
+		PinkBr,
+		DeepGreenBr,
+		LavenderBr,
+		WisteriaVioletBr,
+		BeigeBr,
+		CarmineBr,
+		AmberRedBr,
+		OliveGreenBr,
+		DarkFuchsiaBr,
+		TangerineBr,
+		LightBlueBr,
+		EmeraldGreenBr,
+		PurpleBr,
+		MossGreenBr,
+		FleshPinkBr,
+		HarvestGoldBr,
+		ElectricBlueBr,
+		LemonYellowBr,
+		FreshGreenBr,
+		AppliqueMBr,
+		AppliquePBr,
+		AppliqueBr,
 	}
 } //Brother_Select()

@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	pay := pes_pec.Read_pes("Clef.pes")
+	pay := pes_pec.Read_pes("D1124.pes")
 	cmds := pay.Cmds
 
 	myApp := app.New()
