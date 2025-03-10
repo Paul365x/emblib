@@ -6,6 +6,7 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"github.com/emblib/adapters/pes_pec"
+	"github.com/emblib/adapters/shared"
 )
 
 func main() {
@@ -15,8 +16,8 @@ func main() {
 	myApp := app.New()
 	w := myApp.NewWindow("Lines")
 	c_prev := pes_pec.PCommand{
-		Command1: pes_pec.Stitch,
-		Command2: pes_pec.Stitch,
+		Command1: shared.Stitch,
+		Command2: shared.Stitch,
 		Dx:       0,
 		Dy:       0,
 		Color:    0,
@@ -42,9 +43,9 @@ func main() {
 		x := cmds[p].Dx + c_prev.Dx
 		y := cmds[p].Dy + c_prev.Dy
 		switch cmds[p].Command1 {
-		case ColorChg:
+		case shared.ColorChg:
 			col_idx = cmds[p].Color - 1 // 1 indexed in file
-		case Trim: // jump without line/thread
+		case shared.Trim: // jump without line/thread
 			c_prev = cmds[p]
 			c_prev.Dx = x
 			c_prev.Dy = y

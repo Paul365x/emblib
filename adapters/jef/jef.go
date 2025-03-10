@@ -7,11 +7,10 @@ import (
 	"io"
 	"os"
 
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/container"
+	"github.com/emblib/adapters/shared"
 )
+
+var fh *os.File = os.Stdout
 
 /*
 **
@@ -143,7 +142,7 @@ func read_cmds(bin []byte) []PCommand {
 				break
 			case 01:
 				//color chg
-				cmd.Command1 = ColorChg
+				cmd.Command1 = shared.ColorChg
 				cmd.Dx = float32(bin[count])
 				count++
 				cmd.Dy = float32(bin[count])
@@ -155,13 +154,13 @@ func read_cmds(bin []byte) []PCommand {
 				cmd.Dy = float32(bin[count])
 				count++
 				if cmd.Dx == 0 && cmd.Dy == 0 {
-					cmd.Command1 = Trim
+					cmd.Command1 = shared.Trim
 				} else {
-					cmd.Command1 = Jump
+					cmd.Command1 = shared.Jump
 				}
 			}
 		} else {
-			cmd.Command1 = Stitch
+			cmd.Command1 = shared.Stitch
 			cmd.Dx = float32(int(b0))
 			cmd.Dy = float32(int(b1) * -1)
 		}
@@ -181,7 +180,7 @@ type Payload struct {
 	Desc    map[string]string
 	BG      color.Color
 	Path    string
-	ColList []ColorSub
+	ColList []shared.ColorSub
 	Palette []color.Color
 	Head    string
 	Cmds    []PCommand
@@ -246,6 +245,7 @@ const (
 	is_cmd_mask  = 0x80
 )
 
+/*
 func main() {
 	pay := read_jef("2024SewNow.JEF")
 	cmds := pay.Cmds
@@ -253,8 +253,8 @@ func main() {
 	myApp := app.New()
 	w := myApp.NewWindow("Lines")
 	c_prev := PCommand{
-		Command1: Stitch,
-		Command2: Stitch,
+		Command1: shared.Stitch,
+		Command2: shared.Stitch,
 		Dx:       0,
 		Dy:       0,
 		Color:    0,
@@ -283,9 +283,9 @@ func main() {
 		x := cmds[p].Dx + c_prev.Dx
 		y := cmds[p].Dy + c_prev.Dy
 		switch cmds[p].Command1 {
-		case ColorChg:
+		case shared.ColorChg:
 		//	col_idx = cmds[p].Color - 1 // 1 indexed in file
-		case Trim: // jump without line/thread
+		case shared.Trim: // jump without line/thread
 			c_prev = cmds[p]
 			c_prev.Dx = x
 			c_prev.Dy = y
@@ -312,7 +312,7 @@ func main() {
 	w.ShowAndRun()
 
 }
-
+*/
 /*
 **
 ** Stitch handling
@@ -329,15 +329,15 @@ type PCommand struct {
 
 func jef_decode_cmd(c int) string {
 	switch c {
-	case Trim:
+	case shared.Trim:
 		return "Trim"
-	case Stitch:
+	case shared.Stitch:
 		return "Stitch"
-	case Jump:
+	case shared.Jump:
 		return "Jump"
-	case ColorChg:
+	case shared.ColorChg:
 		return "ColorChg"
-	case End:
+	case shared.End:
 		return "End"
 	}
 	return "unk"

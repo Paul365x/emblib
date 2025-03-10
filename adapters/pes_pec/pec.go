@@ -7,8 +7,49 @@ import (
 	"io"
 	"os"
 
-	"github.com/emblib/adapters"
+	"github.com/emblib/adapters/shared"
 )
+
+/*
+**
+** API stuff
+**
+ */
+// parse_color_sub parses in a color structure
+func parse_color_sub(bin []byte) (uint32, shared.ColorSub) {
+	var col shared.ColorSub
+	var count uint32
+	count = 0
+	col.CodeLen = bin[count]
+	count++
+	col.Code = bin[count : count+uint32(col.CodeLen)]
+	count += uint32(col.CodeLen)
+	red := bin[count]
+	count++
+	green := bin[count]
+	count++
+	blue := bin[count]
+	count++
+	col.Color = color.RGBA{red, green, blue, 255}
+	col.U1 = bin[count]
+	count++
+	col.ColType = binary.LittleEndian.Uint32(bin[count : count+4])
+	count += 4
+	col.DescLen = bin[count]
+	count++
+	col.Desc = string(bin[count : count+uint32(col.DescLen)])
+	count += uint32(col.DescLen)
+	col.BrandLen = bin[count]
+	count++
+	col.Brand = string(bin[count : count+uint32(col.BrandLen)])
+	count += uint32(col.BrandLen)
+	col.ChartLen = bin[count]
+	count++
+	col.Chart = string(bin[count : count+uint32(col.ChartLen)])
+	count += uint32(col.ChartLen)
+	col.Count = count
+	return count, col
+}
 
 /*
 **
@@ -329,7 +370,7 @@ type HP_4 struct {
 	FeathCount uint16
 	Feather    []byte
 	ColSects   uint16
-	Colors     []adapters.ColorSub
+	Colors     []shared.ColorSub
 	Obj        uint16
 	count      uint32
 }
@@ -765,21 +806,21 @@ type PCommand struct {
 
 func pec_decode_cmd(c int) string {
 	switch c {
-	case Stitch:
+	case shared.Stitch:
 		return "Stitch"
-	case Jump:
+	case shared.Jump:
 		return "Jump"
-	case ColorChg:
+	case shared.ColorChg:
 		return "ColorChg"
-	case End:
+	case shared.End:
 		return "End"
 	}
 	return "unk"
 }
 
 func (p PCommand) Dump() {
-	fmt.Printf("\tCommand1: %s\n", decode_cmd(p.Command1))
-	fmt.Printf("\tCommand2: %s\n", decode_cmd(p.Command2))
+	fmt.Printf("\tCommand1: %s\n", pec_decode_cmd(p.Command1))
+	fmt.Printf("\tCommand2: %s\n", pec_decode_cmd(p.Command2))
 	fmt.Printf("%08b\n", p.Dx)
 	fmt.Printf("\tDx : %f 0x%X\n", p.Dx, p.Dx)
 	fmt.Printf("%08b\n", p.Dy)
@@ -836,9 +877,9 @@ func decode_long(c []byte) (int, float32) {
 	flag = flag >> 4
 	switch flag {
 	case 1:
-		cmd = Jump
+		cmd = shared.Jump
 	case 2:
-		cmd = Trim
+		cmd = shared.Trim
 	}
 	val := int16(c[0] & 0x0F)
 	val = val << 8
@@ -859,17 +900,17 @@ func next_command(bin []byte) (int, *PCommand) {
 	count := len(c)
 
 	if c[0] == end_flag {
-		p.Command1 = End
+		p.Command1 = shared.End
 	} else {
 		switch len(c) {
 		case 2:
 			// two short coords
-			p.Command1 = Stitch
+			p.Command1 = shared.Stitch
 			p.Dx, p.Dy = decode_short(c)
 		case 3:
 			// short and long or color
 			if c[0] == color_flag {
-				p.Command1 = ColorChg
+				p.Command1 = shared.ColorChg
 				p.Color = decode_color(c)
 			} else if c[0]&is_cmd_mask > 0 {
 				p.Command1, p.Dx = decode_long(c[0:2])
@@ -894,7 +935,7 @@ type Payload struct {
 	Desc    map[string]string
 	BG      color.Color
 	Path    string
-	ColList []ColorSub
+	ColList []shared.ColorSub
 	Palette []color.Color
 	Head    string
 	Cmds    []PCommand
@@ -985,7 +1026,7 @@ func Read_pes(file string) *Payload {
 		b, p := next_command(StBin[count:])
 		cmds = append(cmds, *p)
 		count += uint32(b)
-		if p.Command1 == End {
+		if p.Command1 == shared.End {
 			break
 		}
 	}
@@ -993,7 +1034,7 @@ func Read_pes(file string) *Payload {
 	return &pay
 }
 
-func convert_colors(c []ColorSub, p []byte) []color.Color {
+func convert_colors(c []shared.ColorSub, p []byte) []color.Color {
 	var cols []color.Color
 	if c != nil {
 		for h := range c {
