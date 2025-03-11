@@ -8,6 +8,30 @@ import (
 
 var fh *os.File = os.Stdout
 
+// PCommand is a struct to hold a command - jump, trim, stitch etc
+type PCommand struct {
+	Command1 int
+	Command2 int
+	Dx       float32
+	Dy       float32
+	Color    int
+}
+
+// Payload captures metadata from file headers and also the stitch commands
+type Payload struct {
+	Width        float32
+	Height       float32
+	Rot          uint16
+	Desc         map[string]string
+	BG           color.Color
+	Path         string
+	ColList      []ColorSub
+	Palette      []color.Color
+	Palette_type bool
+	Head         string
+	Cmds         []PCommand
+}
+
 // ColorSub stores the color structure
 type ColorSub struct {
 	CodeLen  uint8
@@ -41,6 +65,7 @@ func (p ColorSub) Dump() {
 	fmt.Printf("\t\t\tcount: %d 0x%X\n", p.Count, p.Count)
 }
 
+// command constants
 const (
 	Stitch = iota + 1
 	Jump

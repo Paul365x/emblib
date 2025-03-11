@@ -1,23 +1,33 @@
 package main
 
 import (
-	"fmt"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"github.com/emblib/adapters/pes_pec"
 	"github.com/emblib/adapters/shared"
+
+	"path/filepath"
+	"strings"
 )
 
+var file string = "D1124.pes"
+
 func main() {
-	pay := pes_pec.Read_pes("D1124.pes")
-	cmds := pay.Cmds
+	var pay *shared.Payload
+	var cmds []shared.PCommand
+
+	file_type := strings.ToLower(filepath.Ext(file))
+	switch file_type {
+	case ".pes":
+		pay = pes_pec.Read_pes("D1124.pes")
+
+	}
 
 	myApp := app.New()
 	w := myApp.NewWindow("Lines")
-	c_prev := pes_pec.PCommand{
+	c_prev := shared.PCommand{
 		Command1: shared.Stitch,
 		Command2: shared.Stitch,
 		Dx:       0,
@@ -32,14 +42,10 @@ func main() {
 	origin_x := pay.Width / 2.0
 	origin_y := pay.Height / 2.0
 	cols := pay.Palette
+	cmds = pay.Cmds
 	col_idx := 0
 	i := 0
 	for p := range cmds {
-		var j float32 = 10.0
-		if col_idx == 8 && (cmds[p].Dx > j || cmds[p].Dy > j) {
-			fmt.Println(i)
-			cmds[p].Dump()
-		}
 		if p == 0 && cmds[p].Dx == 0 && cmds[p].Dy == 0 {
 			continue
 		}

@@ -798,14 +798,6 @@ const (
 	short_test_neg = 0b1000000
 )
 
-type PCommand struct {
-	Command1 int
-	Command2 int
-	Dx       float32
-	Dy       float32
-	Color    int
-}
-
 func pec_decode_cmd(c int) string {
 	switch c {
 	case shared.Stitch:
@@ -820,18 +812,7 @@ func pec_decode_cmd(c int) string {
 	return "unk"
 }
 
-func (p PCommand) Dump() {
-	fmt.Printf("\tCommand1: %s %08b\n", pec_decode_cmd(p.Command1), p.Command1)
-	fmt.Printf("\tCommand2: %s %08b\n", pec_decode_cmd(p.Command2), p.Command2)
-	//fmt.Printf("%08b\n", p.Dx)
-	fmt.Printf("\tDx : %f 0x%X\n", p.Dx, p.Dx)
-	//fmt.Printf("%08b\n", p.Dy)
-	fmt.Printf("\tDy : %f 0x%X\n", p.Dy, p.Dy)
-	fmt.Printf("\tColor : %d 0x%X\n", p.Color, p.Color)
-}
-
 func next_chunk(bin []byte) []byte {
-
 	count := 0
 	var pl []byte
 	if bin[count] == end_flag {
@@ -852,7 +833,6 @@ func next_chunk(bin []byte) []byte {
 		}
 	}
 	return pl
-
 }
 
 func inc() func() int {
@@ -902,17 +882,13 @@ func decode_long(c []byte) (int, float32) {
 	if val&0x800 > 0 {
 		val -= 0x1000
 	}
-	if cmd == 3 {
-		fmt.Printf("%08b %08b %d\n", c[0], c[1], flag)
-	}
 	f := float32(val) * 0.1
 	return cmd, f
-
 }
 
-func next_command(bin []byte, t bool, f func() int) (int, *PCommand) {
+func next_command(bin []byte, t bool, f func() int) (int, *shared.PCommand) {
 
-	var p PCommand
+	var p shared.PCommand
 
 	c := next_chunk(bin)
 	count := len(c)
@@ -948,21 +924,10 @@ func next_command(bin []byte, t bool, f func() int) (int, *PCommand) {
 	return count, &p
 }
 
-type Payload struct {
-	Width        float32
-	Height       float32
-	Rot          uint16
-	Desc         map[string]string
-	BG           color.Color
-	Path         string
-	ColList      []shared.ColorSub
-	Palette      []color.Color
-	Palette_type bool
-	Head         string
-	Cmds         []PCommand
-}
+// need to change this to a helper function that returns a shared.Payload
+func decode_pes(h Header) shared.Payload {
+	var p shared.Payload
 
-func (p *Payload) decode_pes(h Header) {
 	// hoop scaling. Apparently coords and sizes are 10 times the real size
 	switch h.Ver {
 	case "0001":
@@ -1001,10 +966,11 @@ func (p *Payload) decode_pes(h Header) {
 		p.Path = h.H6.Impath
 		p.ColList = h.H6.Colors
 	}
+	return p
 }
 
-func Read_pes(file string) *Payload {
-	var pay Payload
+func Read_pes(file string) *shared.Payload {
+	var pay shared.Payload
 
 	// get the actual file contents
 	reader, err := os.Open(file)
@@ -1022,7 +988,7 @@ func Read_pes(file string) *Payload {
 	pes_hdr.Parse(bin)
 
 	// get what we want from pes header into our payload
-	pay.decode_pes(pes_hdr)
+	pay = decode_pes(pes_hdr)
 
 	// parse the pec section for a little metadata and the stitches
 	PecBin := bin[pes_hdr.P.Offset:]
@@ -1036,7 +1002,7 @@ func Read_pes(file string) *Payload {
 	pay.Head = H1.Label[2:]
 	pay.Palette_type, pay.Palette = convert_colors(pay.ColList, H1.ColIdx)
 
-	var cmds []PCommand
+	var cmds []shared.PCommand
 
 	niggle := 0
 	count = 0
