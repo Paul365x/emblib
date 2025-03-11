@@ -1,18 +1,18 @@
 package main
 
 import (
+	"path/filepath"
+	"strings"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"github.com/emblib/adapters/pes_pec"
 	"github.com/emblib/adapters/shared"
-
-	"path/filepath"
-	"strings"
 )
 
-var file string = "D1124.pes"
+var file string = "2024.JEF"
 
 func main() {
 	var pay *shared.Payload
@@ -21,7 +21,9 @@ func main() {
 	file_type := strings.ToLower(filepath.Ext(file))
 	switch file_type {
 	case ".pes":
-		pay = pes_pec.Read_pes("D1124.pes")
+		pay = pes_pec.Read_pes(file)
+	case ".jef":
+		pay = jef.read_jef(file)
 
 	}
 

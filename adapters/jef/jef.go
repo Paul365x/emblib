@@ -1,9 +1,8 @@
-package adapters
+package jef
 
 import (
 	"encoding/binary"
 	"fmt"
-	"image/color"
 	"io"
 	"os"
 
@@ -120,9 +119,9 @@ func (p Jef_header) Dump() {
 	fmt.Fprintf(fh, "\tcount: %d 0x%X\n\n", p.count, p.count)
 }
 
-func read_cmds(bin []byte) []PCommand {
-	var cmd PCommand
-	var cmds []PCommand
+func read_cmds(bin []byte) []shared.PCommand {
+	var cmd shared.PCommand
+	var cmds []shared.PCommand
 	count := uint32(0)
 	var loc uint32
 	for {
@@ -173,20 +172,8 @@ func read_cmds(bin []byte) []PCommand {
 	return cmds
 }
 
-type Payload struct {
-	Width   float32
-	Height  float32
-	Rot     uint16
-	Desc    map[string]string
-	BG      color.Color
-	Path    string
-	ColList []shared.ColorSub
-	Palette []color.Color
-	Head    string
-	Cmds    []PCommand
-}
-
-func (p *Payload) decode_jef(h Jef_header) {
+func decode_jef(h Jef_header) shared.Payload {
+	var p shared.Payload
 	// two ways to get the width and height - using the extends or the hoop size
 	switch h.Hoop {
 	case 0:
@@ -213,11 +200,11 @@ func (p *Payload) decode_jef(h Jef_header) {
 		p.Width = float32(h.Extends[0] + h.Extends[2])
 		p.Height = float32(h.Extends[1] + h.Extends[3])
 	}
-
+	return p
 }
 
-func read_jef(file string) Payload {
-	var pay Payload
+func read_jef(file string) shared.Payload {
+	var pay shared.Payload
 
 	// get the actual file contents
 	reader, err := os.Open(file)
@@ -234,7 +221,7 @@ func read_jef(file string) Payload {
 	jef.Parse(bin)
 	jef.Dump()
 	c := jef.SizeOf()
-	pay.decode_jef(jef)
+	pay = decode_jef(jef)
 
 	pay.Cmds = read_cmds(bin[c:])
 	return pay
@@ -318,14 +305,6 @@ func main() {
 ** Stitch handling
 **
  */
-
-type PCommand struct {
-	Command1 int
-	Command2 int
-	Dx       float32
-	Dy       float32
-	Color    int
-}
 
 func jef_decode_cmd(c int) string {
 	switch c {
