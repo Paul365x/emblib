@@ -33,7 +33,13 @@ func main() {
 	origin_y := pay.Height / 2.0
 	cols := pay.Palette
 	col_idx := 0
+	i := 0
 	for p := range cmds {
+		var j float32 = 10.0
+		if col_idx == 8 && (cmds[p].Dx > j || cmds[p].Dy > j) {
+			fmt.Println(i)
+			cmds[p].Dump()
+		}
 		if p == 0 && cmds[p].Dx == 0 && cmds[p].Dy == 0 {
 			continue
 		}
@@ -47,11 +53,12 @@ func main() {
 		switch cmds[p].Command1 {
 		case shared.ColorChg:
 			col_idx = cmds[p].Color - 1 // 1 indexed in file
-			fmt.Println(col_idx)
-		case shared.Trim: // jump without line/thread
+		//	fmt.Println(col_idx)
+		case shared.Trim, shared.Jump: // jump without line/thread
 			c_prev = cmds[p]
 			c_prev.Dx = x
 			c_prev.Dy = y
+			prev = fyne.NewPos(x+origin_x, y+origin_y)
 		default:
 			if p > 5 {
 				//		break
@@ -68,6 +75,7 @@ func main() {
 			img.Add(l)
 			//}
 		}
+		i++
 	}
 
 	w.SetContent(img)

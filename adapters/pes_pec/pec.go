@@ -10,6 +10,8 @@ import (
 	"github.com/emblib/adapters/shared"
 )
 
+var expand float32 = 4.0
+
 /*
 **
 ** API stuff
@@ -819,11 +821,11 @@ func pec_decode_cmd(c int) string {
 }
 
 func (p PCommand) Dump() {
-	fmt.Printf("\tCommand1: %s\n", pec_decode_cmd(p.Command1))
-	fmt.Printf("\tCommand2: %s\n", pec_decode_cmd(p.Command2))
-	fmt.Printf("%08b\n", p.Dx)
+	fmt.Printf("\tCommand1: %s %08b\n", pec_decode_cmd(p.Command1), p.Command1)
+	fmt.Printf("\tCommand2: %s %08b\n", pec_decode_cmd(p.Command2), p.Command2)
+	//fmt.Printf("%08b\n", p.Dx)
 	fmt.Printf("\tDx : %f 0x%X\n", p.Dx, p.Dx)
-	fmt.Printf("%08b\n", p.Dy)
+	//fmt.Printf("%08b\n", p.Dy)
 	fmt.Printf("\tDy : %f 0x%X\n", p.Dy, p.Dy)
 	fmt.Printf("\tColor : %d 0x%X\n", p.Color, p.Color)
 }
@@ -900,6 +902,9 @@ func decode_long(c []byte) (int, float32) {
 	if val&0x800 > 0 {
 		val -= 0x1000
 	}
+	if cmd == 3 {
+		fmt.Printf("%08b %08b %d\n", c[0], c[1], flag)
+	}
 	f := float32(val) * 0.1
 	return cmd, f
 
@@ -938,6 +943,8 @@ func next_command(bin []byte, t bool, f func() int) (int, *PCommand) {
 			p.Command2, p.Dy = decode_long(c[2:4])
 		}
 	}
+	p.Dx *= expand
+	p.Dy *= expand
 	return count, &p
 }
 
@@ -1046,6 +1053,8 @@ func Read_pes(file string) *Payload {
 		}
 	}
 	pay.Cmds = cmds
+	pay.Width *= expand
+	pay.Height *= expand
 	return &pay
 }
 
