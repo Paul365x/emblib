@@ -853,8 +853,21 @@ func next_chunk(bin []byte) []byte {
 
 }
 
-func decode_color(c []byte) int {
-	return int(c[2])
+func inc() func() int {
+	index := 0
+	return func() int {
+		index = index + 1
+		return index
+	}
+}
+
+func decode_color(c []byte, t bool, f func() int) int {
+	if t {
+		return int(c[2])
+	} else {
+		rv := f()
+		return rv
+	}
 }
 
 func decode_short(c []byte) (float32, float32) {
@@ -892,7 +905,7 @@ func decode_long(c []byte) (int, float32) {
 
 }
 
-func next_command(bin []byte) (int, *PCommand) {
+func next_command(bin []byte, t bool, f func() int) (int, *PCommand) {
 
 	var p PCommand
 
@@ -911,7 +924,7 @@ func next_command(bin []byte) (int, *PCommand) {
 			// short and long or color
 			if c[0] == color_flag {
 				p.Command1 = shared.ColorChg
-				p.Color = decode_color(c)
+				p.Color = decode_color(c, t, f)
 			} else if c[0]&is_cmd_mask > 0 {
 				p.Command1, p.Dx = decode_long(c[0:2])
 				p.Dy, _ = decode_short(c[2:])
@@ -929,16 +942,17 @@ func next_command(bin []byte) (int, *PCommand) {
 }
 
 type Payload struct {
-	Width   float32
-	Height  float32
-	Rot     uint16
-	Desc    map[string]string
-	BG      color.Color
-	Path    string
-	ColList []shared.ColorSub
-	Palette []color.Color
-	Head    string
-	Cmds    []PCommand
+	Width        float32
+	Height       float32
+	Rot          uint16
+	Desc         map[string]string
+	BG           color.Color
+	Path         string
+	ColList      []shared.ColorSub
+	Palette      []color.Color
+	Palette_type bool
+	Head         string
+	Cmds         []PCommand
 }
 
 func (p *Payload) decode_pes(h Header) {
@@ -1013,7 +1027,7 @@ func Read_pes(file string) *Payload {
 	H2.Parse(PecBin[count:])
 
 	pay.Head = H1.Label[2:]
-	pay.Palette = convert_colors(pay.ColList, H1.ColIdx)
+	pay.Palette_type, pay.Palette = convert_colors(pay.ColList, H1.ColIdx)
 
 	var cmds []PCommand
 
@@ -1021,9 +1035,10 @@ func Read_pes(file string) *Payload {
 	count = 0
 	l := H1.SizeOf() + H2.SizeOf()
 	StBin := PecBin[l:]
+	f := inc()
 	for {
 		niggle++
-		b, p := next_command(StBin[count:])
+		b, p := next_command(StBin[count:], pay.Palette_type, f)
 		cmds = append(cmds, *p)
 		count += uint32(b)
 		if p.Command1 == shared.End {
@@ -1034,19 +1049,22 @@ func Read_pes(file string) *Payload {
 	return &pay
 }
 
-func convert_colors(c []shared.ColorSub, p []byte) []color.Color {
+func convert_colors(c []shared.ColorSub, p []byte) (bool, []color.Color) {
 	var cols []color.Color
+	var t bool = true
 	if c != nil {
 		for h := range c {
 			cols = append(cols, c[h].Color)
 		}
 	} else {
+		t = false
 		palette := Brother_select()
 		for i := 0; i < len(p); i++ {
 			cols = append(cols, palette[p[i]-1]) // 1 based index not 0
+			//		fmt.Println(i, p[i])
 		}
 	}
-	return cols
+	return t, cols
 }
 
 var (

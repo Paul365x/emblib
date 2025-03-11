@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
@@ -45,6 +47,7 @@ func main() {
 		switch cmds[p].Command1 {
 		case shared.ColorChg:
 			col_idx = cmds[p].Color - 1 // 1 indexed in file
+			fmt.Println(col_idx)
 		case shared.Trim: // jump without line/thread
 			c_prev = cmds[p]
 			c_prev.Dx = x
@@ -61,7 +64,9 @@ func main() {
 			prev = fyne.NewPos(x+origin_x, y+origin_y)
 			l.Position2 = prev
 			l.StrokeWidth = 2
+			//if col_idx == 5 {
 			img.Add(l)
+			//}
 		}
 	}
 
