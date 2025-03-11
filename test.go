@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"github.com/emblib/adapters/jef"
 	"github.com/emblib/adapters/pes_pec"
 	"github.com/emblib/adapters/shared"
 )
@@ -23,7 +24,7 @@ func main() {
 	case ".pes":
 		pay = pes_pec.Read_pes(file)
 	case ".jef":
-		pay = jef.read_jef(file)
+		pay = jef.Read_jef(file)
 
 	}
 

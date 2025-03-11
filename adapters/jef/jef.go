@@ -203,7 +203,7 @@ func decode_jef(h Jef_header) shared.Payload {
 	return p
 }
 
-func read_jef(file string) shared.Payload {
+func Read_jef(file string) *shared.Payload {
 	var pay shared.Payload
 
 	// get the actual file contents
@@ -224,7 +224,7 @@ func read_jef(file string) shared.Payload {
 	pay = decode_jef(jef)
 
 	pay.Cmds = read_cmds(bin[c:])
-	return pay
+	return &pay
 }
 
 const (
