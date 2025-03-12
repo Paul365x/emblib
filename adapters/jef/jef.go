@@ -3,6 +3,7 @@ package jef
 import (
 	"encoding/binary"
 	"fmt"
+	"image/color"
 	"io"
 	"os"
 
@@ -11,11 +12,17 @@ import (
 
 var fh *os.File = os.Stdout
 
+const (
+	clr_end_mask = 0xd
+	is_cmd_mask  = 0x80
+)
+
 /*
 **
 ** Jef header parsing code
 **
  */
+
 type Jef_header struct {
 	Offset  uint32 // file offset to stitches
 	unk1    uint32
@@ -51,29 +58,30 @@ func (s *Jef_header) Parse(bin []byte) {
 		count += 4
 	}
 
-	s.Pad1 = make([]uint32, 4)
+	s.Pad1 = make([]uint32, 4) // edge for hoop
 	for i := range 4 {
 		s.Pad1[i] = binary.LittleEndian.Uint32(bin[count : count+4])
 		count += 4
 	}
-	s.Pad2 = make([]uint32, 4)
+	s.Pad2 = make([]uint32, 4) // edge for hoop
 	for i := range 4 {
 		s.Pad2[i] = binary.LittleEndian.Uint32(bin[count : count+4])
 		count += 4
 	}
 
-	s.Pad3 = make([]uint32, 4)
+	s.Pad3 = make([]uint32, 4) // edge for hoop
 	for i := range 4 {
 		s.Pad3[i] = binary.LittleEndian.Uint32(bin[count : count+4])
 		count += 4
 	}
 
-	s.Pad4 = make([]uint32, 4)
+	s.Pad4 = make([]uint32, 4) // edge for hoop
 	for i := range 4 {
 		s.Pad4[i] = binary.LittleEndian.Uint32(bin[count : count+4])
 		count += 4
 	}
 
+	// read colours (u32) until we get to 0x0d
 	var clr uint32
 	for {
 		clr = binary.LittleEndian.Uint32(bin[count : count+4])
@@ -119,9 +127,18 @@ func (p Jef_header) Dump() {
 	fmt.Fprintf(fh, "\tcount: %d 0x%X\n\n", p.count, p.count)
 }
 
-func read_cmds(bin []byte) []shared.PCommand {
-	var cmd shared.PCommand
+func read_cmds(bin []byte, cols []uint32, f func() int) []shared.PCommand {
+
+	var cmd = shared.PCommand{
+		Command1: shared.ColorChg,
+		Command2: 0,
+		Dx:       2.0,
+		Dy:       2.0,
+		Color:    int(cols[f()]),
+	}
 	var cmds []shared.PCommand
+	cmds = append(cmds, cmd)
+
 	count := uint32(0)
 	var loc uint32
 	for {
@@ -134,7 +151,8 @@ func read_cmds(bin []byte) []shared.PCommand {
 			break
 		}
 		count++
-		if b0 == -127 {
+		if b0 == -128 { // all commands have -128 in b0
+			//fmt.Printf("cmd: %d\t%d 0x%X 0x%X\t\n", len(cmds), loc, b0, b1)
 			switch b1 {
 			case 10:
 				// end
@@ -146,8 +164,9 @@ func read_cmds(bin []byte) []shared.PCommand {
 				count++
 				cmd.Dy = float32(bin[count])
 				count++
+				cmd.Color = int(cols[f()])
 			case 02:
-				//jmp
+				//jmp and trim
 				cmd.Dx = float32(bin[count])
 				count++
 				cmd.Dy = float32(bin[count])
@@ -159,7 +178,12 @@ func read_cmds(bin []byte) []shared.PCommand {
 				}
 			}
 		} else {
+			// janome puts a stitch instead of a jump to get to the first location
+			//	if len(cmds) == 0 {
+			//		cmd.Command1 = shared.Jump
+			//	} else {
 			cmd.Command1 = shared.Stitch
+			//	}
 			cmd.Dx = float32(int(b0))
 			cmd.Dy = float32(int(b1) * -1)
 		}
@@ -167,7 +191,9 @@ func read_cmds(bin []byte) []shared.PCommand {
 			break
 		}
 		cmds = append(cmds, cmd)
-		fmt.Printf("%d\t%d\t%s\t%f %f\n", len(cmds), loc, jef_decode_cmd(cmd.Command1), cmd.Dx, cmd.Dy)
+		if jef_decode_cmd(cmd.Command1) != "Stitch" {
+			fmt.Printf("%d\t%d\t%s\t%f %f %d\n", len(cmds), loc, jef_decode_cmd(cmd.Command1), cmd.Dx, cmd.Dy, cmd.Color)
+		}
 	}
 	return cmds
 }
@@ -203,6 +229,14 @@ func decode_jef(h Jef_header) shared.Payload {
 	return p
 }
 
+func inc() func() int {
+	index := -1
+	return func() int {
+		index = index + 1
+		return index
+	}
+}
+
 func Read_jef(file string) *shared.Payload {
 	var pay shared.Payload
 
@@ -222,84 +256,12 @@ func Read_jef(file string) *shared.Payload {
 	jef.Dump()
 	c := jef.SizeOf()
 	pay = decode_jef(jef)
-
-	pay.Cmds = read_cmds(bin[c:])
+	pay.Palette = Janome_select()
+	f := inc()
+	pay.Cmds = read_cmds(bin[c:], jef.ClrChg, f)
 	return &pay
 }
 
-const (
-	clr_end_mask = 0xd
-	is_cmd_mask  = 0x80
-)
-
-/*
-func main() {
-	pay := read_jef("2024SewNow.JEF")
-	cmds := pay.Cmds
-
-	myApp := app.New()
-	w := myApp.NewWindow("Lines")
-	c_prev := PCommand{
-		Command1: shared.Stitch,
-		Command2: shared.Stitch,
-		Dx:       0,
-		Dy:       0,
-		Color:    0,
-	}
-
-	prev := fyne.NewPos(0, 0)
-	img := container.NewWithoutLayout()
-
-	// all stitches are offset from centre
-	origin_x := pay.Width / 2.0
-	origin_y := pay.Height / 2.0
-
-	fmt.Println(origin_x, origin_y, pay.Width, pay.Height)
-
-	//cols := pay.Palette
-	//col_idx := 0
-	for p := range cmds {
-		if p == 0 && cmds[p].Dx == 0 && cmds[p].Dy == 0 {
-			continue
-		}
-		if p == 1 {
-			c_prev = cmds[p]
-			prev = fyne.NewPos(cmds[p].Dx+origin_x, cmds[p].Dy+origin_y)
-			continue
-		}
-		x := cmds[p].Dx + c_prev.Dx
-		y := cmds[p].Dy + c_prev.Dy
-		switch cmds[p].Command1 {
-		case shared.ColorChg:
-		//	col_idx = cmds[p].Color - 1 // 1 indexed in file
-		case shared.Trim: // jump without line/thread
-			c_prev = cmds[p]
-			c_prev.Dx = x
-			c_prev.Dy = y
-		default:
-			if p > 5 {
-				//		break
-			}
-			c_prev = cmds[p]
-			c_prev.Dx = x
-			c_prev.Dy = y
-			fmt.Println("coord: ", x, y)
-			l := canvas.NewLine(color.Black)
-			l.Position1 = prev
-			prev = fyne.NewPos(x+origin_x, y+origin_y)
-			l.Position2 = prev
-			l.StrokeWidth = 2
-			img.Add(l)
-		}
-	}
-
-	w.SetContent(img)
-
-	w.Resize(fyne.NewSize(1000, 1000))
-	w.ShowAndRun()
-
-}
-*/
 /*
 **
 ** Stitch handling
@@ -322,366 +284,252 @@ func jef_decode_cmd(c int) string {
 	return "unk"
 }
 
-/*
-
-
-func (p PCommand) Dump() {
-	fmt.Fprintf(fh, "\tCommand1: %s\n", decode_cmd(p.Command1))
-	fmt.Fprintf(fh, "\tCommand2: %s\n", decode_cmd(p.Command2))
-	fmt.Printf("%08b\n", p.Dx)
-	fmt.Fprintf(fh, "\tDx : %f 0x%X\n", p.Dx, p.Dx)
-	fmt.Printf("%08b\n", p.Dy)
-	fmt.Fprintf(fh, "\tDy : %f 0x%X\n", p.Dy, p.Dy)
-	fmt.Fprintf(fh, "\tColor : %d 0x%X\n", p.Color, p.Color)
-}
-
-func next_chunk(bin []byte) []byte {
-
-	count := 0
-	var pl []byte
-	if bin[count] == end_flag {
-		pl = append(pl, bin[count:count+1]...)
-		count += 1
-	} else if bin[count] == color_flag {
-		pl = append(pl, bin[count:count+3]...)
-		count += 3
-	} else {
-		for range 2 {
-			if bin[count]&is_cmd_mask > 0 {
-				pl = append(pl, bin[count:count+2]...)
-				count += 2
-			} else {
-				pl = append(pl, bin[count:count+1]...)
-				count += 1
-			}
-		}
-	}
-	return pl
-
-}
-
-func decode_color(c []byte) int {
-	return int(c[2])
-}
-
-func decode_short(c []byte) (float32, float32) {
-	val1 := int16(c[0])
-	val2 := int16(c[1])
-	if val1 >= 0x40 {
-		val1 -= 0x80
-	}
-	if val2 >= 0x40 {
-		val2 -= 0x80
-	}
-	f1 := float32(val1) * 0.1
-	f2 := float32(val2) * 0.1
-	return f1, f2
-}
-
-func decode_long(c []byte) (int, float32) {
-	var cmd int
-	flag := c[0] & cmd_mask
-	flag = flag >> 4
-	switch flag {
-	case 1:
-		cmd = Jump
-	case 2:
-		cmd = Trim
-	}
-	val := int16(c[0] & 0x0F)
-	val = val << 8
-	val += int16(c[1])
-	if val&0x800 > 0 {
-		val -= 0x1000
-	}
-	f := float32(val) * 0.1
-	return cmd, f
-
-}
-
-func next_command(bin []byte) (int, *PCommand) {
-
-	var p PCommand
-
-	c := next_chunk(bin)
-	count := len(c)
-
-	if c[0] == end_flag {
-		p.Command1 = End
-	} else {
-		switch len(c) {
-		case 2:
-			// two short coords
-			p.Command1 = Stitch
-			p.Dx, p.Dy = decode_short(c)
-		case 3:
-			// short and long or color
-			if c[0] == color_flag {
-				p.Command1 = ColorChg
-				p.Color = decode_color(c)
-			} else if c[0]&is_cmd_mask > 0 {
-				p.Command1, p.Dx = decode_long(c[0:2])
-				p.Dy, _ = decode_short(c[2:])
-			} else {
-				p.Dx, _ = decode_short(c)
-				p.Command2, p.Dy = decode_long(c[1:3])
-			}
-
-		case 4:
-			p.Command1, p.Dx = decode_long(c[0:2])
-			p.Command2, p.Dy = decode_long(c[2:4])
-		}
-	}
-	return count, &p
-}
-
-type Payload struct {
-	Width   float32
-	Height  float32
-	Rot     uint16
-	Desc    map[string]string
-	BG      color.Color
-	Path    string
-	ColList []ColorSub
-	Palette []color.Color
-	Head    string
-	Cmds    []PCommand
-}
-
-func (p *Payload) decode_pes(h Header) {
-	// hoop scaling. Apparently coords and sizes are 10 times the real size
-	switch h.Ver {
-	case "0001":
-		if h.H1.Hoop == 0 {
-			p.Width = float32(100)
-			p.Height = float32(100)
-		} else if h.H1.Hoop == 1 {
-			p.Width = float32(130)
-			p.Height = float32(180)
-		}
-	case "0020":
-		p.Height = float32(h.H2.HoopH)
-		p.Width = float32(h.H2.HoopW)
-		p.Rot = h.H2.Rot
-	case "0030":
-		p.Height = float32(h.H3.HoopH)
-		p.Width = float32(h.H3.HoopW)
-		p.Rot = h.H3.Rot
-	case "0040":
-		p.Height = float32(h.H4.HoopH)
-		p.Width = float32(h.H4.HoopW)
-		p.Rot = h.H4.Rot
-		p.Desc = *h.H4.Desc
-	case "0050":
-		p.Height = float32(h.H5.HoopH)
-		p.Width = float32(h.H5.HoopW)
-		p.Rot = h.H5.Rot
-		p.Desc = *h.H5.Desc
-		p.Path = h.H5.Impath
-		p.ColList = h.H5.Colors
-	case "0060":
-		p.Height = float32(h.H6.HoopH)
-		p.Width = float32(h.H6.HoopW)
-		p.Rot = h.H6.Rot
-		p.Desc = *h.H6.Desc
-		p.Path = h.H6.Impath
-		p.ColList = h.H6.Colors
-	}
-}
-
-func read_pes(file string) *Payload {
-	var pay Payload
-
-	// get the actual file contents
-	reader, err := os.Open(file)
-	if err != nil {
-		panic(err)
-	}
-	bin, err := io.ReadAll(reader)
-	if err != nil {
-		panic(err)
-	}
-	reader.Close()
-
-	// get all the information we can from the pes header
-	var pes_hdr Header
-	pes_hdr.Parse(bin)
-
-	// get what we want from pes header into our payload
-	pay.decode_pes(pes_hdr)
-
-	// parse the pec section for a little metadata and the stitches
-	PecBin := bin[pes_hdr.P.Offset:]
-	var H1 H1
-	H1.Parse(PecBin)
-
-	var H2 H2
-	count := H1.SizeOf()
-	H2.Parse(PecBin[count:])
-
-	pay.Head = H1.Label[2:]
-	pay.Palette = convert_colors(pay.ColList, H1.ColIdx)
-
-	var cmds []PCommand
-
-	niggle := 0
-	count = 0
-	l := H1.SizeOf() + H2.SizeOf()
-	StBin := PecBin[l:]
-	for {
-		niggle++
-		b, p := next_command(StBin[count:])
-		cmds = append(cmds, *p)
-		count += uint32(b)
-		if p.Command1 == End {
-			break
-		}
-	}
-	pay.Cmds = cmds
-	return &pay
-}
-
-func convert_colors(c []ColorSub, p []byte) []color.Color {
-	var cols []color.Color
-	if c != nil {
-		for h := range c {
-			cols = append(cols, c[h].Color)
-		}
-	} else {
-		palette := Brother_select()
-		for i := 0; i < len(p); i++ {
-			cols = append(cols, palette[p[i]-1]) // 1 based index not 0
-		}
-	}
-	return cols
-}
-
 var (
-	PrussianBlueBr = color.RGBA{0x1a, 0x0a, 0x94, 255}
-	BlueBr         = color.RGBA{0x0f, 0x75, 0xff, 255}
-	TealGreenBr    = color.RGBA{0x00, 0x93, 0x4c, 255}
-	CFBlueBr       = color.RGBA{0xba, 0xbd, 0xfe, 255}
-	RedBr          = color.RGBA{0xec, 0x00, 0x00, 255}
-	RedBrownBr     = color.RGBA{0xe4, 0x99, 0x5a, 255}
-	MagentaBr      = color.RGBA{0xcc, 0x48, 0xab, 255}
-	LightLilacBr   = color.RGBA{0xfd, 0xc4, 0xfa, 255}
-	LilacBr        = color.RGBA{0xdd, 0x84, 0xab, 255}
-	MintGreenBr    = color.RGBA{0x6b, 0xd3, 0x8a, 255}
-	DeepGoldBr     = color.RGBA{0xe4, 0xa9, 0x45, 255}
-	OrangeBr       = color.RGBA{0xff, 0xbd, 0x42, 255}
-	YellowBr       = color.RGBA{0xff, 0xe6, 0x00, 255}
-	LimeGreenBr    = color.RGBA{0x6c, 0xd9, 0x00, 255}
-	BrassBr        = color.RGBA{0xc1, 0xa9, 0x41, 255}
-	SilverBr       = color.RGBA{0xb5, 0xad, 0x97, 255}
-	RussetBrownBr  = color.RGBA{0xba, 0x9c, 0x5f, 255}
-	CreamBrownBr   = color.RGBA{0xfa, 0xf5, 0x9e, 255}
-	PewterBr       = color.RGBA{0x80, 0x80, 0x80, 255}
-	BlackBr        = color.RGBA{0x0, 0x0, 0x0, 255}
-	UltraMarineBr  = color.RGBA{0x00, 0x1c, 0xdf, 255}
-	RoyaPurpleBr   = color.RGBA{0xdf, 0x00, 0xb8, 255}
-	DarkGrayBr     = color.RGBA{0x62, 0x62, 0x62, 255}
-	DarkBrownBr    = color.RGBA{0x69, 0x26, 0x0d, 255}
-	DeepRoseBr     = color.RGBA{0xff, 0x00, 0x60, 255}
-	LightBrownBr   = color.RGBA{0xbf, 0x82, 0x00, 255}
-	SalmonPinkBr   = color.RGBA{0xf3, 0x91, 0x78, 255}
-	VermilionBr    = color.RGBA{0xff, 0x68, 0x05, 255}
-	WhiteBr        = color.RGBA{0xf0, 0xf0, 0xf0, 255}
-	VioletBr       = color.RGBA{0xc8, 0x32, 0xcd, 255}
-	SeaCrestBr     = color.RGBA{0xb0, 0xbf, 0x9b, 255}
-	SkyBlueBr      = color.RGBA{0x65, 0xbf, 0xeb, 255}
-
-	PumpkinBr     = color.RGBA{0xff, 0xba, 0x04, 255}
-	CreamYellowBr = color.RGBA{0xff, 0xf0, 0x6c, 255}
-	KhakiBr       = color.RGBA{0xfe, 0xca, 0x15, 255}
-	ClayBrownBr   = color.RGBA{0xf3, 0x81, 0x01, 255}
-	LeafGreenBr   = color.RGBA{0x37, 0xa9, 0x23, 255}
-	PeacockBlueBr = color.RGBA{0x23, 0x46, 0x5f, 255}
+	UnknownJf      = color.RGBA{0x0, 0x0, 0x0, 255}
+	BlackJf        = color.RGBA{0x0, 0x0, 0x0, 255}
+	WhiteJf        = color.RGBA{0xFF, 0xFF, 0xFF, 255}
+	Sunflower1Jf   = color.RGBA{0xFF, 0xFF, 0x17, 255}
+	Hazel1Jf       = color.RGBA{0xFA, 0xA0, 0x60, 255}
+	OliveGreenJf   = color.RGBA{0x5C, 0x76, 0x49, 255}
+	GreenJf        = color.RGBA{0x40, 0xC0, 0x30, 255}
+	SkyJf          = color.RGBA{0x65, 0xC2, 0xC8, 255}
+	PurpleJf       = color.RGBA{0xAC, 0x80, 0xBE, 255}
+	PinkJf         = color.RGBA{0xF5, 0xBC, 0xCB, 255}
+	RedJf          = color.RGBA{0xFF, 0x0, 0x0, 255}
+	BrownJf        = color.RGBA{0xC0, 0x80, 0x0, 255}
+	BlueJf         = color.RGBA{0x0, 0x0, 0xF0, 255}
+	GoldJf         = color.RGBA{0xE4, 0xC3, 0x5D, 255}
+	DarkBrownJf    = color.RGBA{0xA5, 0x2A, 0x2A, 255}
+	PaleVioletJf   = color.RGBA{0xD5, 0xB0, 0xD4, 255}
+	PaleYellowJf   = color.RGBA{0xFC, 0xF2, 0x94, 255}
+	PalePinkJf     = color.RGBA{0xF0, 0xD0, 0xC0, 255}
+	PeachJf        = color.RGBA{0xFF, 0xC0, 0x0, 255}
+	Beige1Jf       = color.RGBA{0xC9, 0xA4, 0x80, 255}
+	WineRedJf      = color.RGBA{0x9B, 0x3D, 0x4B, 255}
+	PaleSkyJf      = color.RGBA{0xA0, 0xB8, 0xCC, 255}
+	YellowGreenJf  = color.RGBA{0x7F, 0xC2, 0x1C, 255}
+	SilverGreyJf   = color.RGBA{0xB9, 0xB9, 0xB9, 255}
+	GreyJf         = color.RGBA{0xA0, 0xA0, 0xA0, 255}
+	PaleAquaJf     = color.RGBA{0x98, 0xD6, 0xBD, 255}
+	BabyBlueJf     = color.RGBA{0xB8, 0xF0, 0xF0, 255}
+	PowderBlueJf   = color.RGBA{0x36, 0x8B, 0xA0, 255}
+	BrightBlueJf   = color.RGBA{0x4F, 0x83, 0xAB, 255}
+	SlateBlueJf    = color.RGBA{0x38, 0x6A, 0x91, 255}
+	NaveBlueJf     = color.RGBA{0x0, 0x20, 0x6B, 255}
+	SalmonPinkJf   = color.RGBA{0xE5, 0xC5, 0xCA, 255}
+	CoralJf        = color.RGBA{0xF9, 0x67, 0x6B, 255}
+	BurntOrangeJf  = color.RGBA{0xE3, 0x31, 0x1F, 255}
+	CinnamonJf     = color.RGBA{0xE2, 0xA1, 0x88, 255}
+	UmberJf        = color.RGBA{0xB5, 0x94, 0x74, 255}
+	BlondeJf       = color.RGBA{0xE4, 0xCF, 0x99, 255}
+	Sunflower2Jf   = color.RGBA{0xE1, 0xCB, 0x0, 255}
+	OrchidPinkJf   = color.RGBA{0xE1, 0xAD, 0xD4, 255}
+	PeonyPurpleJf  = color.RGBA{0xC3, 0x0, 0x7E, 255}
+	BurgundyJf     = color.RGBA{0x80, 0x0, 0x4B, 255}
+	RoyalPurple1Jf = color.RGBA{0xA0, 0x60, 0xB0, 255}
+	CardinalRedJf  = color.RGBA{0xC0, 0x40, 0x20, 255}
+	OpalGreenJf    = color.RGBA{0xCA, 0xE0, 0xC0, 255}
+	MossGreenJf    = color.RGBA{0x89, 0x98, 0x56, 255}
+	MeadowGreenJf  = color.RGBA{0x0, 0xAA, 0x0, 255}
+	DarkGreenJf    = color.RGBA{0x21, 0x8A, 0x21, 255}
+	AquamarineJf   = color.RGBA{0x5D, 0xAE, 0x94, 255}
+	EmeraldGreenJf = color.RGBA{0x4C, 0xBF, 0x8F, 255}
+	PeacockGreenJf = color.RGBA{0x0, 0x77, 0x72, 255}
+	DarkGreyJf     = color.RGBA{0x70, 0x70, 0x70, 255}
+	IvoryWhiteJf   = color.RGBA{0xF2, 0xFF, 0xFF, 255}
+	Hazel2Jf       = color.RGBA{0xB1, 0x58, 0x18, 255}
+	Toast1Jf       = color.RGBA{0xCB, 0x8A, 0x7, 255}
+	SalmonJf       = color.RGBA{0xF7, 0x92, 0x7B, 255}
+	CocoaBrownJf   = color.RGBA{0x98, 0x69, 0x2D, 255}
+	SiennaJf       = color.RGBA{0xA2, 0x71, 0x48, 255}
+	Sepia1Jf       = color.RGBA{0x7B, 0x55, 0x4A, 255}
+	DarkSepiaJf    = color.RGBA{0x4F, 0x39, 0x46, 255}
+	VioletBlueJf   = color.RGBA{0x52, 0x3A, 0x97, 255}
+	BlueInkJf      = color.RGBA{0x0, 0x0, 0xA0, 255}
+	SolarBlueJf    = color.RGBA{0x0, 0x96, 0xDE, 255}
+	GreenDustJf    = color.RGBA{0xB2, 0xDD, 0x53, 255}
+	CrimsonJf      = color.RGBA{0xFA, 0x8F, 0xBB, 255}
+	FloralPinkJf   = color.RGBA{0xDE, 0x64, 0x9E, 255}
+	WineJf         = color.RGBA{0xB5, 0x50, 0x66, 255}
+	OliveDrabJf    = color.RGBA{0x5E, 0x57, 0x47, 255}
+	MeadowJf       = color.RGBA{0x4C, 0x88, 0x1F, 255}
+	CanaryYellowJf = color.RGBA{0xE4, 0xDC, 0x79, 255}
+	Toast2Jf       = color.RGBA{0xCB, 0x8A, 0x1A, 255}
+	Beige2Jf       = color.RGBA{0xC6, 0xAA, 0x42, 255}
+	HoneyDewJf     = color.RGBA{0xEC, 0xB0, 0x2C, 255}
+	TangerineJf    = color.RGBA{0xF8, 0x80, 0x40, 255}
+	OceanBlueJf    = color.RGBA{0xFF, 0xE5, 0x5, 255}
+	Sepia2Jf       = color.RGBA{0xFA, 0x7A, 0x7A, 255}
+	RoyalPurple2Jf = color.RGBA{0x6B, 0xE0, 0x0, 255}
+	YellowOcherJf  = color.RGBA{0x38, 0x6C, 0xAE, 255}
+	BeigeGreyJf    = color.RGBA{0xD0, 0xBA, 0xB0, 255}
+	BambooJf       = color.RGBA{0xE3, 0xBE, 0x81, 255}
 )
 
-func Brother_set() *map[string]color.Color {
+func Janome_set() *map[string]color.Color {
 	return &map[string]color.Color{
-		"Br_PrussianBlue":   PrussianBlueBr,
-		"Br_Blue":           BlueBr,
-		"Br_TealGreen":      TealGreenBr,
-		"Br_CornFlowerBlue": CFBlueBr,
-		"Br_Red":            RedBr,
-		"Br_RedBrown":       RedBrownBr,
-		"Br_Magenta":        MagentaBr,
-		"Br_LightLilac":     LightLilacBr,
-		"Br_Lilac":          LilacBr,
-		"Br_MintGreen":      MintGreenBr,
-		"Br_DeepGold":       DeepGoldBr,
-		"Br_Orange":         OrangeBr,
-		"Br_Yellow":         YellowBr,
-		"Br_LimeGreen":      LimeGreenBr,
-		"Br_Brass":          BrassBr,
-		"Br_Silver":         SilverBr,
-		"Br_RussetBrown":    RussetBrownBr,
-		"Br_CreamBrown":     CreamBrownBr,
-		"Br_Pewter":         PewterBr,
-		"Br_Black":          BlackBr,
-		"Br_UltraMarine":    UltraMarineBr,
-		"Br_RoyalPurple":    RoyaPurpleBr,
-		"Br_DarkGray":       DarkGrayBr,
-		"Br_DarkBrown":      DarkBrownBr,
-		"Br_DeepRose":       DeepRoseBr,
-		"Br_LightBrown":     LightBrownBr,
-		"Br_SalmonPink":     SalmonPinkBr,
-		"Br_Vermilion":      VermilionBr,
-		"Br_White":          WhiteBr,
-		"Br_Violet":         VioletBr,
-		"Br_SeaCrest":       SeaCrestBr,
-		"Br_SkyBlue":        SkyBlueBr,
-		"Br_Pumpkin":        PumpkinBr,
-		"Br_CreamYellow":    CreamYellowBr,
-		"Br_Khaki":          KhakiBr,
-		"Br_ClayBrown":      ClayBrownBr,
-		"Br_LeafGreen":      LeafGreenBr,
-		"Br_PeacockBlue":    PeacockBlueBr,
+		"Jf_Unknown":      UnknownJf,
+		"Jf_Black":        BlackJf,
+		"Jf_White":        WhiteJf,
+		"Jf_Sunflower1":   Sunflower1Jf,
+		"Jf_Hazel1":       Hazel1Jf,
+		"Jf_OliveGreen":   OliveGreenJf,
+		"Jf_Green":        GreenJf,
+		"Jf_Sky":          SkyJf,
+		"Jf_Purple":       PurpleJf,
+		"Jf_Pink":         PinkJf,
+		"Jf_Red":          RedJf,
+		"Jf_Brown":        BrownJf,
+		"Jf_Blue":         BlueJf,
+		"Jf_Gold":         GoldJf,
+		"Jf_DarkBrown":    DarkBrownJf,
+		"Jf_PaleViolet":   PaleVioletJf,
+		"Jf_PaleYellow":   PaleYellowJf,
+		"Jf_PalePink":     PalePinkJf,
+		"Jf_Peach":        PeachJf,
+		"Jf_Beige1":       Beige1Jf,
+		"Jf_WineRed":      WineRedJf,
+		"Jf_PaleSky":      PaleSkyJf,
+		"Jf_YellowGreen":  YellowGreenJf,
+		"Jf_SilverGrey":   SilverGreyJf,
+		"Jf_Grey":         GreyJf,
+		"Jf_PaleAqua":     PaleAquaJf,
+		"Jf_BabyBlue":     BabyBlueJf,
+		"Jf_PowderBlue":   PowderBlueJf,
+		"Jf_BrightBlue":   BrightBlueJf,
+		"Jf_SlateBlue":    SlateBlueJf,
+		"Jf_NaveBlue":     NaveBlueJf,
+		"Jf_SalmonPink":   SalmonPinkJf,
+		"Jf_Coral":        CoralJf,
+		"Jf_BurntOrange":  BurntOrangeJf,
+		"Jf_Cinnamon":     CinnamonJf,
+		"Jf_Umber":        UmberJf,
+		"Jf_Blonde":       BlondeJf,
+		"Jf_Sunflower2":   Sunflower2Jf,
+		"Jf_OrchidPink":   OrchidPinkJf,
+		"Jf_PeonyPurple":  PeonyPurpleJf,
+		"Jf_Burgundy":     BurgundyJf,
+		"Jf_RoyalPurple1": RoyalPurple1Jf,
+		"Jf_CardinalRed":  CardinalRedJf,
+		"Jf_OpalGreen":    OpalGreenJf,
+		"Jf_MossGreen":    MossGreenJf,
+		"Jf_MeadowGreen":  MeadowGreenJf,
+		"Jf_DarkGreen":    DarkGreenJf,
+		"Jf_Aquamarine":   AquamarineJf,
+		"Jf_EmeraldGreen": EmeraldGreenJf,
+		"Jf_PeacockGreen": PeacockGreenJf,
+		"Jf_DarkGrey":     DarkGreyJf,
+		"Jf_IvoryWhite":   IvoryWhiteJf,
+		"Jf_Hazel2":       Hazel2Jf,
+		"Jf_Toast1":       Toast1Jf,
+		"Jf_Salmon":       SalmonJf,
+		"Jf_CocoaBrown":   CocoaBrownJf,
+		"Jf_Sienna":       SiennaJf,
+		"Jf_Sepia1":       Sepia1Jf,
+		"Jf_DarkSepia":    DarkSepiaJf,
+		"Jf_VioletBlue":   VioletBlueJf,
+		"Jf_BlueInk":      BlueInkJf,
+		"Jf_SolarBlue":    SolarBlueJf,
+		"Jf_GreenDust":    GreenDustJf,
+		"Jf_Crimson":      CrimsonJf,
+		"Jf_FloralPink":   FloralPinkJf,
+		"Jf_Wine":         WineJf,
+		"Jf_OliveDrab":    OliveDrabJf,
+		"Jf_Meadow":       MeadowJf,
+		"Jf_CanaryYellow": CanaryYellowJf,
+		"Jf_Toast2":       Toast2Jf,
+		"Jf_Beige2":       Beige2Jf,
+		"Jf_HoneyDew":     HoneyDewJf,
+		"Jf_Tangerine":    TangerineJf,
+		"Jf_OceanBlue":    OceanBlueJf,
+		"Jf_Sepia2":       Sepia2Jf,
+		"Jf_RoyalPurple2": RoyalPurple2Jf,
+		"Jf_YellowOcher":  YellowOcherJf,
+		"Jf_BeigeGrey":    BeigeGreyJf,
+		"Jf_Bamboo":       BambooJf,
 	}
-} //brother_set()
+}
 
-// order is important
-func Brother_select() []color.Color {
+func Janome_select() []color.Color {
 	return []color.Color{
-		PrussianBlueBr,
-		BlueBr,
-		TealGreenBr,
-		CFBlueBr,
-		RedBr,
-		RedBrownBr,
-		MagentaBr,
-		LightLilacBr,
-		LilacBr,
-		MintGreenBr,
-		DeepGoldBr,
-		OrangeBr,
-		YellowBr,
-		LimeGreenBr,
-		BrassBr,
-		SilverBr,
-		RussetBrownBr,
-		CreamBrownBr,
-		PewterBr,
-		BlackBr,
-		UltraMarineBr,
-		RoyaPurpleBr,
-		DarkGrayBr,
-		DarkBrownBr,
-		DeepRoseBr,
-		LightBrownBr,
-		SalmonPinkBr,
-		VermilionBr,
-		WhiteBr,
-		VioletBr,
-		SeaCrestBr,
-		SkyBlueBr,
-		PumpkinBr,
-		CreamYellowBr,
-		KhakiBr,
-		ClayBrownBr,
-		LeafGreenBr,
-		PeacockBlueBr,
+		UnknownJf,
+		BlackJf,
+		WhiteJf,
+		Sunflower1Jf,
+		Hazel1Jf,
+		OliveGreenJf,
+		GreenJf,
+		SkyJf,
+		PurpleJf,
+		PinkJf,
+		RedJf,
+		BrownJf,
+		BlueJf,
+		GoldJf,
+		DarkBrownJf,
+		PaleVioletJf,
+		PaleYellowJf,
+		PalePinkJf,
+		PeachJf,
+		Beige1Jf,
+		WineRedJf,
+		PaleSkyJf,
+		YellowGreenJf,
+		SilverGreyJf,
+		GreyJf,
+		PaleAquaJf,
+		BabyBlueJf,
+		PowderBlueJf,
+		BrightBlueJf,
+		SlateBlueJf,
+		NaveBlueJf,
+		SalmonPinkJf,
+		CoralJf,
+		BurntOrangeJf,
+		CinnamonJf,
+		UmberJf,
+		BlondeJf,
+		Sunflower2Jf,
+		OrchidPinkJf,
+		PeonyPurpleJf,
+		BurgundyJf,
+		RoyalPurple1Jf,
+		CardinalRedJf,
+		OpalGreenJf,
+		MossGreenJf,
+		MeadowGreenJf,
+		DarkGreenJf,
+		AquamarineJf,
+		EmeraldGreenJf,
+		PeacockGreenJf,
+		DarkGreyJf,
+		IvoryWhiteJf,
+		Hazel2Jf,
+		Toast1Jf,
+		SalmonJf,
+		CocoaBrownJf,
+		SiennaJf,
+		Sepia1Jf,
+		DarkSepiaJf,
+		VioletBlueJf,
+		BlueInkJf,
+		SolarBlueJf,
+		GreenDustJf,
+		CrimsonJf,
+		FloralPinkJf,
+		WineJf,
+		OliveDrabJf,
+		MeadowJf,
+		CanaryYellowJf,
+		Toast2Jf,
+		Beige2Jf,
+		HoneyDewJf,
+		TangerineJf,
+		OceanBlueJf,
+		Sepia2Jf,
+		RoyalPurple2Jf,
+		YellowOcherJf,
+		BeigeGreyJf,
+		BambooJf,
 	}
-} //Brother_Select()
-*/
+}

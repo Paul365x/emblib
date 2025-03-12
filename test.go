@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/emblib/adapters/shared"
 )
 
-var file string = "2024.JEF"
+var file string = "2024SewNow.JEF"
 
 func main() {
 	var pay *shared.Payload
@@ -49,6 +50,11 @@ func main() {
 	col_idx := 0
 	i := 0
 	for p := range cmds {
+		/*
+			if p >= 3 {
+				fmt.Printf("breaking on command %d\n", p)
+				break
+			}*/
 		if p == 0 && cmds[p].Dx == 0 && cmds[p].Dy == 0 {
 			continue
 		}
@@ -62,7 +68,7 @@ func main() {
 		switch cmds[p].Command1 {
 		case shared.ColorChg:
 			col_idx = cmds[p].Color - 1 // 1 indexed in file
-		//	fmt.Println(col_idx)
+			fmt.Printf("color chg: %d\n", col_idx)
 		case shared.Trim, shared.Jump: // jump without line/thread
 			c_prev = cmds[p]
 			c_prev.Dx = x
