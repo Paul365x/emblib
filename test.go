@@ -109,7 +109,7 @@ func main() {
 out:
 	w.SetContent(img)
 
-	w.Resize(fyne.NewSize(100, 100))
+	w.Resize(fyne.NewSize(500, 500))
 	w.ShowAndRun()
 
 }
