@@ -1,3 +1,10 @@
+/*
+** pec/pes adapter
+** routines to read and understand Brother's pes file format
+** Creates a sequence of commands with metadata that can be run on a render engine
+** Note pes format is simply extra headers added to the front of a pec file
+ */
+
 package pes_pec
 
 import (
@@ -10,13 +17,15 @@ import (
 	"github.com/emblib/adapters/shared"
 )
 
-var expand float32 = 4.0
+var expand float32 = 4.0 // Expand: Size of resulting image is dependent on a specific machine
+// this is a fudge factor to ensure the image fits
 
 /*
 **
 ** API stuff
 **
  */
+
 // parse_color_sub parses in a color structure
 func parse_color_sub(bin []byte) (uint32, shared.ColorSub) {
 	var col shared.ColorSub
@@ -642,8 +651,10 @@ func (h Header) Dump() {
 	fmt.Printf("\tcount: %d 0x%X\n", h.count, h.count)
 }
 
+//
 // Helpers for header parsing
 //
+
 // parse_desc H_4 and following have a description block. this is the parser for that block
 func parse_desc(bin []byte) (uint32, *map[string]string) {
 	var len uint8
@@ -684,6 +695,8 @@ func parse_desc(bin []byte) (uint32, *map[string]string) {
 ** Pec reading code
 **
  */
+
+// H1 stores the first pec header
 type H1 struct {
 	Label   string
 	Ret     byte
@@ -697,6 +710,7 @@ type H1 struct {
 	count   uint32
 }
 
+// H1.Parse parses the first pec header
 func (h *H1) Parse(bin []byte) {
 	count := uint32(0)
 	h.Label = string(bin[count : count+19])
@@ -721,10 +735,12 @@ func (h *H1) Parse(bin []byte) {
 	h.count = count
 }
 
+// H1.SizeOf returns the size of the first pec header
 func (h H1) SizeOf() uint32 {
 	return h.count
 }
 
+// H1.Dump dumps out the first pec header
 func (h *H1) Dump() {
 	fmt.Printf("Header1:\n")
 	fmt.Printf("\tLabel: %s\n", h.Label)
@@ -739,6 +755,7 @@ func (h *H1) Dump() {
 	fmt.Printf("\tcount: %d 0x%X\n", h.count, h.count)
 }
 
+// H2 stores the second pec header
 type H2 struct {
 	u1     uint16
 	TOffs  uint16
@@ -749,6 +766,7 @@ type H2 struct {
 	count  uint32
 }
 
+// H2.Parse parses the second pec header
 func (h *H2) Parse(bin []byte) {
 	count := uint32(0)
 	h.u1 = binary.LittleEndian.Uint16(bin[count : count+2])
@@ -766,10 +784,12 @@ func (h *H2) Parse(bin []byte) {
 	h.count = count
 }
 
+// H2.SizeOf returns the size of the second pec header
 func (h H2) SizeOf() uint32 {
 	return h.count
 }
 
+// H2.Dump dumps out the second pec header
 func (h *H2) Dump() {
 	fmt.Printf("Header2:\n")
 	fmt.Printf("\tu1: %d 0x%x\n", h.u1, h.u1)
@@ -787,6 +807,7 @@ func (h *H2) Dump() {
 **
  */
 
+// masks for bitwise operations that aid decoding commands
 const (
 	is_cmd_mask    = 128
 	cmd_mask       = 112
@@ -798,6 +819,7 @@ const (
 	short_test_neg = 0b1000000
 )
 
+// pec_decode_cmd converts a command type to a string
 func pec_decode_cmd(c int) string {
 	switch c {
 	case shared.Stitch:
@@ -812,6 +834,7 @@ func pec_decode_cmd(c int) string {
 	return "unk"
 }
 
+// next_chunk is a language style scanner used to identify which bytes to decode - could be 2,3,4
 func next_chunk(bin []byte) []byte {
 	count := 0
 	var pl []byte
@@ -836,6 +859,7 @@ func next_chunk(bin []byte) []byte {
 	return pl
 }
 
+// inc factory creating closures that count up
 func inc() func() int {
 	index := 0
 	return func() int {
@@ -844,15 +868,19 @@ func inc() func() int {
 	}
 }
 
+// decode_color if set in pes header we index into its table otherwise we use pec changes
 func decode_color(c []byte, t bool, f func() int) int {
 	if t {
+		// index into pes header color table
 		return int(c[2]) - 1
 	} else {
+		// index into the pec header color table
 		rv := f()
 		return rv - 1
 	}
 }
 
+// decode byte extract a byte to a command
 func decode_byte(c []byte) float32 {
 	val := int16(c[0])
 	if val >= 0x40 {
@@ -862,12 +890,14 @@ func decode_byte(c []byte) float32 {
 	return f
 }
 
+// decode_short decodes the pec short command format
 func decode_short(c []byte) (float32, float32) {
 	f1 := decode_byte(c)
 	f2 := decode_byte(c[1:])
 	return f1, f2
 }
 
+// decode_long decodes the pec long command format to command and remainder
 func decode_long(c []byte) (int, float32) {
 	var cmd int
 	flag := c[0] & cmd_mask
@@ -888,6 +918,7 @@ func decode_long(c []byte) (int, float32) {
 	return cmd, f
 }
 
+// next_command decodes the next command
 func next_command(bin []byte, t bool, f func() int) (int, *shared.PCommand) {
 
 	var p shared.PCommand
@@ -926,7 +957,7 @@ func next_command(bin []byte, t bool, f func() int) (int, *shared.PCommand) {
 	return count, &p
 }
 
-// need to change this to a helper function that returns a shared.Payload
+// decode_pes decodes a header
 func decode_pes(h Header) shared.Payload {
 	var p shared.Payload
 
@@ -971,6 +1002,7 @@ func decode_pes(h Header) shared.Payload {
 	return p
 }
 
+// read_pes reads in a file and converts it to a payload that can be run
 func Read_pes(file string) *shared.Payload {
 	var pay shared.Payload
 
@@ -1026,6 +1058,8 @@ func Read_pes(file string) *shared.Payload {
 	return &pay
 }
 
+// convert_colors decodes the pes color_subs or uses the brother palette to
+// create a specific palette for this design
 func convert_colors(c []shared.ColorSub, p []byte) (bool, []color.Color) {
 	var cols []color.Color
 	var t bool = true
@@ -1044,6 +1078,7 @@ func convert_colors(c []shared.ColorSub, p []byte) (bool, []color.Color) {
 	return t, cols
 }
 
+// defines of the Brother palette thread colors
 var (
 	PrussianBlueBr   = color.RGBA{0x1a, 0x0a, 0x94, 255}
 	BlueBr           = color.RGBA{0x0f, 0x75, 0xff, 255}
@@ -1111,6 +1146,7 @@ var (
 	AppliqueBr       = color.RGBA{0xff, 0xc8, 0xc8, 255}
 )
 
+// Brother_set returns a map of name to color
 func Brother_set() *map[string]color.Color {
 	return &map[string]color.Color{
 		"Br_PrussianBlue":   PrussianBlueBr,
@@ -1180,6 +1216,7 @@ func Brother_set() *map[string]color.Color {
 	}
 } //brother_set()
 
+// Brother_select returns an array/lookup table of the Brother palette
 // order is important
 func Brother_select() []color.Color {
 	return []color.Color{

@@ -1,3 +1,8 @@
+/*
+** Shared contains code required by all adapters - essentially the guts of the api
+**
+ */
+
 package shared
 
 import (

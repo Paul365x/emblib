@@ -1,3 +1,9 @@
+/*
+** Jef adapter
+** routines to read and understand Janome's Jef file format
+** Creates a sequence of commands with metadata that can be run on a render engine
+ */
+
 package jef
 
 import (
@@ -11,8 +17,10 @@ import (
 )
 
 var fh *os.File = os.Stdout
-var expand float32 = 0.5
+var expand float32 = 0.5 // Expand: Size of resulting image is dependent on a specific machine
+// this is a fudge factor to ensure the image fits
 
+// Masks that do bitwise operations to help parse stitches
 const (
 	clr_end_mask = 0xd
 	is_cmd_mask  = 0x80
@@ -24,6 +32,7 @@ const (
 **
  */
 
+// Jef_header stores the header portion of a jef file
 type Jef_header struct {
 	Offset  uint32 // file offset to stitches
 	unk1    uint32
@@ -100,7 +109,7 @@ func (s *Jef_header) Parse(bin []byte) {
 		count += 4
 	}
 	s.count = count
-}
+} // Parse
 
 // Preamble.SizeOf returns the size in bytes - offset into the file of the byte after the preamble. Always 12 bytes
 func (p Jef_header) SizeOf() uint32 {
@@ -128,6 +137,7 @@ func (p Jef_header) Dump() {
 	fmt.Fprintf(fh, "\tcount: %d 0x%X\n\n", p.count, p.count)
 }
 
+// read_cmds parses stitches to a list of render engine commands
 func read_cmds(bin []byte, cols []uint32, f func() int) []shared.PCommand {
 
 	// set the initial color
@@ -194,8 +204,9 @@ FORLOOP:
 		//	}
 	}
 	return cmds
-}
+} // read_cmds()
 
+// decode_jef converts jef header information to useable - currently only width and height
 func decode_jef(h Jef_header) shared.Payload {
 	var p shared.Payload
 	// two ways to get the width and height - using the extends or the hoop size
@@ -229,8 +240,9 @@ func decode_jef(h Jef_header) shared.Payload {
 		}
 	}
 	return p
-}
+} // decode_jef
 
+// inc factory to produce an incrementing closure
 func inc() func() int {
 	index := -1
 	return func() int {
@@ -239,6 +251,7 @@ func inc() func() int {
 	}
 }
 
+// Read_jef reads a jef file and returns the payload ie what we are interested in
 func Read_jef(file string) *shared.Payload {
 	var pay shared.Payload
 
@@ -262,7 +275,7 @@ func Read_jef(file string) *shared.Payload {
 	f := inc()
 	pay.Cmds = read_cmds(bin[c:], jef.ClrChg, f)
 	return &pay
-}
+} // Read_jef
 
 /*
 **
@@ -270,6 +283,7 @@ func Read_jef(file string) *shared.Payload {
 **
  */
 
+// jef_decode_cmd converts a numeric command - render engine format - to a string
 func jef_decode_cmd(c int) string {
 	switch c {
 	case shared.Trim:
@@ -284,8 +298,9 @@ func jef_decode_cmd(c int) string {
 		return "End"
 	}
 	return "unk"
-}
+} // jef_decode_cmd
 
+// defines for the colors of the standard Janome thread palette
 var (
 	UnknownJf      = color.RGBA{0x0, 0x0, 0x0, 255}
 	BlackJf        = color.RGBA{0x0, 0x0, 0x0, 255}
@@ -366,8 +381,9 @@ var (
 	YellowOcherJf  = color.RGBA{0x38, 0x6C, 0xAE, 255}
 	BeigeGreyJf    = color.RGBA{0xD0, 0xBA, 0xB0, 255}
 	BambooJf       = color.RGBA{0xE3, 0xBE, 0x81, 255}
-)
+) // var
 
+// Janome_set returns a map of the Janome thread palette indexed by name to color
 func Janome_set() *map[string]color.Color {
 	return &map[string]color.Color{
 		"Jf_Unknown":      UnknownJf,
@@ -450,8 +466,9 @@ func Janome_set() *map[string]color.Color {
 		"Jf_BeigeGrey":    BeigeGreyJf,
 		"Jf_Bamboo":       BambooJf,
 	}
-}
+} // Janome_set
 
+// Janome_select returns an array in index order of the Janome thread palette
 func Janome_select() []color.Color {
 	return []color.Color{
 		UnknownJf,
@@ -534,4 +551,4 @@ func Janome_select() []color.Color {
 		BeigeGreyJf,
 		BambooJf,
 	}
-}
+} // Janome_select
