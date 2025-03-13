@@ -11,6 +11,7 @@ import (
 )
 
 var fh *os.File = os.Stdout
+var expand float32 = 0.5
 
 const (
 	clr_end_mask = 0xd
@@ -129,18 +130,21 @@ func (p Jef_header) Dump() {
 
 func read_cmds(bin []byte, cols []uint32, f func() int) []shared.PCommand {
 
+	// set the initial color
 	var cmd = shared.PCommand{
 		Command1: shared.ColorChg,
 		Command2: 0,
 		Dx:       2.0,
 		Dy:       2.0,
-		Color:    int(cols[f()]),
+		Color:    int(cols[f()] + 1),
 	}
+
 	var cmds []shared.PCommand
 	cmds = append(cmds, cmd)
 
 	count := uint32(0)
 	var loc uint32
+FORLOOP:
 	for {
 		loc = count
 		b0 := int8(bin[count])
@@ -152,24 +156,23 @@ func read_cmds(bin []byte, cols []uint32, f func() int) []shared.PCommand {
 		}
 		count++
 		if b0 == -128 { // all commands have -128 in b0
-			//fmt.Printf("cmd: %d\t%d 0x%X 0x%X\t\n", len(cmds), loc, b0, b1)
 			switch b1 {
-			case 10:
+			case 0x10:
 				// end
-				break
+				break FORLOOP
 			case 01:
 				//color chg
 				cmd.Command1 = shared.ColorChg
-				cmd.Dx = float32(bin[count])
+				cmd.Dx = float32(bin[count]) * expand
 				count++
-				cmd.Dy = float32(bin[count])
+				cmd.Dy = float32(bin[count]) * expand
 				count++
 				cmd.Color = int(cols[f()])
 			case 02:
 				//jmp and trim
-				cmd.Dx = float32(bin[count])
+				cmd.Dx = float32(int8(bin[count])) * expand
 				count++
-				cmd.Dy = float32(bin[count])
+				cmd.Dy = float32(int8(bin[count])*-1) * expand
 				count++
 				if cmd.Dx == 0 && cmd.Dy == 0 {
 					cmd.Command1 = shared.Trim
@@ -178,22 +181,17 @@ func read_cmds(bin []byte, cols []uint32, f func() int) []shared.PCommand {
 				}
 			}
 		} else {
-			// janome puts a stitch instead of a jump to get to the first location
-			//	if len(cmds) == 0 {
-			//		cmd.Command1 = shared.Jump
-			//	} else {
 			cmd.Command1 = shared.Stitch
-			//	}
-			cmd.Dx = float32(int(b0))
-			cmd.Dy = float32(int(b1) * -1)
+			cmd.Dx = float32(int(b0)) * expand
+			cmd.Dy = float32(int(b1)*-1) * expand
 		}
 		if cmd.Dx == 0xff && cmd.Dy == 0xff {
 			break
 		}
 		cmds = append(cmds, cmd)
-		if jef_decode_cmd(cmd.Command1) != "Stitch" {
-			fmt.Printf("%d\t%d\t%s\t%f %f %d\n", len(cmds), loc, jef_decode_cmd(cmd.Command1), cmd.Dx, cmd.Dy, cmd.Color)
-		}
+		//	if jef_decode_cmd(cmd.Command1) != "Stitch" {
+		fmt.Printf("%d %d %d\t%d\t%s\t%f %f %d\n", b0, b1, len(cmds), loc, jef_decode_cmd(cmd.Command1), cmd.Dx, cmd.Dy, cmd.Color)
+		//	}
 	}
 	return cmds
 }
@@ -201,30 +199,34 @@ func read_cmds(bin []byte, cols []uint32, f func() int) []shared.PCommand {
 func decode_jef(h Jef_header) shared.Payload {
 	var p shared.Payload
 	// two ways to get the width and height - using the extends or the hoop size
-	switch h.Hoop {
-	case 0:
-		// 110 x 110 mm
-		p.Width = 110
-		p.Height = 110
-	case 1:
-		// 50 x 50 mm
-		p.Width = 50
-		p.Height = 50
-	case 2:
-		// 140 x 200 mm
-		p.Width = 140
-		p.Height = 200
-	case 3:
-		// 126 x 110 mm
-		p.Width = 126
-		p.Height = 110
-	case 4:
-		// 200 x 200 mm
-		p.Width = 200
-		p.Height = 200
-	default:
+	// prefer extends
+	if h.Extends[0] != 0 && h.Extends[2] != 0 && h.Extends[1] != 0 && h.Extends[3] != 0 {
 		p.Width = float32(h.Extends[0] + h.Extends[2])
 		p.Height = float32(h.Extends[1] + h.Extends[3])
+	} else {
+		switch h.Hoop {
+		case 0:
+			// 110 x 110 mm
+			p.Width = 110
+			p.Height = 110
+		case 1:
+			// 50 x 50 mm
+			p.Width = 50
+			p.Height = 50
+		case 2:
+			// 140 x 200 mm
+			p.Width = 140
+			p.Height = 200
+		case 3:
+			// 126 x 110 mm
+			p.Width = 126
+			p.Height = 110
+		case 4:
+			// 200 x 200 mm
+			p.Width = 200
+			p.Height = 200
+
+		}
 	}
 	return p
 }

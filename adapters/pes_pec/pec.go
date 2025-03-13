@@ -823,6 +823,7 @@ func next_chunk(bin []byte) []byte {
 		count += 3
 	} else {
 		for range 2 {
+			// so long format - could be two, three or four bytes
 			if bin[count]&is_cmd_mask > 0 {
 				pl = append(pl, bin[count:count+2]...)
 				count += 2
@@ -845,24 +846,25 @@ func inc() func() int {
 
 func decode_color(c []byte, t bool, f func() int) int {
 	if t {
-		return int(c[2])
+		return int(c[2]) - 1
 	} else {
 		rv := f()
-		return rv
+		return rv - 1
 	}
 }
 
+func decode_byte(c []byte) float32 {
+	val := int16(c[0])
+	if val >= 0x40 {
+		val -= 0x80
+	}
+	f := float32(val) * 0.1
+	return f
+}
+
 func decode_short(c []byte) (float32, float32) {
-	val1 := int16(c[0])
-	val2 := int16(c[1])
-	if val1 >= 0x40 {
-		val1 -= 0x80
-	}
-	if val2 >= 0x40 {
-		val2 -= 0x80
-	}
-	f1 := float32(val1) * 0.1
-	f2 := float32(val2) * 0.1
+	f1 := decode_byte(c)
+	f2 := decode_byte(c[1:])
 	return f1, f2
 }
 
@@ -908,9 +910,9 @@ func next_command(bin []byte, t bool, f func() int) (int, *shared.PCommand) {
 				p.Color = decode_color(c, t, f)
 			} else if c[0]&is_cmd_mask > 0 {
 				p.Command1, p.Dx = decode_long(c[0:2])
-				p.Dy, _ = decode_short(c[2:])
+				p.Dy = decode_byte(c[2:])
 			} else {
-				p.Dx, _ = decode_short(c)
+				p.Dx = decode_byte(c)
 				p.Command2, p.Dy = decode_long(c[1:3])
 			}
 
