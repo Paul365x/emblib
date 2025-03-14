@@ -14,7 +14,11 @@ import (
 	"github.com/emblib/adapters/shared"
 )
 
-var file string = "ATG12847.jef"
+var file string = "designs/ATG12847.pes"
+
+//"designs/D1124.pes"
+
+//"designs/ATG12847.jef"
 
 func main() {
 	var pay *shared.Payload
@@ -50,14 +54,7 @@ func main() {
 	col_idx := 0
 	i := 0
 	for p := range cmds {
-		if p > 3000 {
-			//		continue
-		}
-		/*
-			if p >= 3 {
-				fmt.Printf("breaking on command %d\n", p)
-				break
-			}*/
+
 		if p == 0 && cmds[p].Dx == 0 && cmds[p].Dy == 0 {
 			continue
 		}
@@ -70,12 +67,8 @@ func main() {
 		y := cmds[p].Dy + c_prev.Dy
 		switch cmds[p].Command1 {
 		case shared.ColorChg:
-			if col_idx == 6 {
-				goto out
-			}
 			col_idx = cmds[p].Color
 			var r, g, b, a = cols[col_idx].RGBA()
-
 			fmt.Printf("color chg: %d: %x %x %x %x\n", col_idx, uint8(r), uint8(g), uint8(b), uint8(a))
 		case shared.Trim, shared.Jump: // jump without line/thread
 			prev = fyne.NewPos(x+origin_x, y+origin_y)
@@ -83,32 +76,23 @@ func main() {
 			c_prev = cmds[p]
 			c_prev.Dx = x
 			c_prev.Dy = y
-
 		default:
-			if p > 5 {
-				//		break
-			}
 			c_prev = cmds[p]
 			c_prev.Dx = x
 			c_prev.Dy = y
 			l := canvas.NewLine(cols[col_idx])
 			var r, g, b, a = cols[col_idx].RGBA()
-
 			fmt.Printf("color draw: %d: %x %x %x %x\n", col_idx, uint8(r), uint8(g), uint8(b), uint8(a))
 			l.Position1 = prev
 			prev = fyne.NewPos(x+origin_x, y+origin_y)
-			//prev = fyne.NewPos(x+prev.X, y+prev.Y)
 			l.Position2 = prev
 			l.StrokeWidth = 2
-			//if col_idx == 5 {
 			img.Add(l)
-			//}
 		}
 		i++
 	}
-out:
-	w.SetContent(img)
 
+	w.SetContent(img)
 	w.Resize(fyne.NewSize(500, 500))
 	w.ShowAndRun()
 

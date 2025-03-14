@@ -17,7 +17,7 @@ import (
 	"github.com/emblib/adapters/shared"
 )
 
-var expand float32 = 4.0 // Expand: Size of resulting image is dependent on a specific machine
+var expand float32 = 3.0 // Expand: Size of resulting image is dependent on a specific machine
 // this is a fudge factor to ensure the image fits
 
 /*
@@ -26,9 +26,62 @@ var expand float32 = 4.0 // Expand: Size of resulting image is dependent on a sp
 **
  */
 
+// ColorSub stores the color structure
+type ColorSub struct {
+	CodeLen  uint8
+	Code     []byte
+	Color    color.Color
+	U1       uint8
+	ColType  uint32
+	DescLen  uint8
+	Desc     string
+	BrandLen uint8
+	Brand    string
+	ChartLen uint8
+	Chart    string
+	Count    uint32
+}
+
+// Dump writes out this Struct
+func (p ColorSub) Dump() {
+	fmt.Printf("\t\tColorSub:\n")
+	fmt.Printf("\t\t\tCodeLen: %d 0x%X\n", p.CodeLen, p.CodeLen)
+	fmt.Printf("\t\t\tCode: 0x%X\n", p.Code)
+	rgba := color.RGBAModel.Convert(p.Color).(color.RGBA)
+	fmt.Printf("\t\t\tColor: (%d, %d, %d, %d)\n", rgba.R, rgba.G, rgba.B, rgba.A)
+	fmt.Printf("\t\t\tu1: %d 0x%X\n", p.U1, p.U1)
+	fmt.Printf("\t\t\tDescLen: %d 0x%X\n", p.DescLen, p.DescLen)
+	fmt.Printf("\t\t\tDesc: %s\n", p.Desc)
+	fmt.Printf("\t\t\tBrandLen: %d 0x%X\n", p.BrandLen, p.BrandLen)
+	fmt.Printf("\t\t\tBrand: %s\n", p.Brand)
+	fmt.Printf("\t\t\tChartLen: %d 0x%X\n", p.ChartLen, p.ChartLen)
+	fmt.Printf("\t\t\tChart: %s\n", p.Chart)
+	fmt.Printf("\t\t\tcount: %d 0x%X\n", p.Count, p.Count)
+}
+
+// convert_colors decodes the pes color_subs or uses the brother palette to
+// create a specific palette for this design
+func convert_colors(c []ColorSub, p []byte) (bool, []color.Color) {
+	var cols []color.Color
+	var t bool = true
+	if c != nil {
+		for h := range c {
+			cols = append(cols, c[h].Color)
+		}
+	} else {
+		t = false
+		palette := Brother_select()
+		for i := 0; i < len(p); i++ {
+			cols = append(cols, palette[p[i]-1]) // 1 based index not 0
+			//		fmt.Println(i, p[i])
+		}
+	}
+	return t, cols
+}
+
 // parse_color_sub parses in a color structure
-func parse_color_sub(bin []byte) (uint32, shared.ColorSub) {
-	var col shared.ColorSub
+func parse_color_sub(bin []byte) (uint32, ColorSub) {
+	var col ColorSub
 	var count uint32
 	count = 0
 	col.CodeLen = bin[count]
@@ -381,7 +434,7 @@ type HP_4 struct {
 	FeathCount uint16
 	Feather    []byte
 	ColSects   uint16
-	Colors     []shared.ColorSub
+	Colors     []ColorSub
 	Obj        uint16
 	count      uint32
 }
@@ -547,16 +600,17 @@ func (h H_6) Dump() {
 
 // Header stores the pes header in all forms
 type Header struct {
-	Ver   string
-	P     Preamble
-	H1    H_1
-	H2    H_2
-	H3    H_3
-	H4    H_4
-	H5    H_5
-	H6    H_6
-	count uint32
-	tail  uint32
+	Ver     string
+	P       Preamble
+	H1      H_1
+	H2      H_2
+	H3      H_3
+	H4      H_4
+	H5      H_5
+	H6      H_6
+	ColList []ColorSub
+	count   uint32
+	tail    uint32
 }
 
 // Header.Parse reads in the pes header
@@ -990,14 +1044,14 @@ func decode_pes(h Header) shared.Payload {
 		p.Rot = h.H5.Rot
 		p.Desc = *h.H5.Desc
 		p.Path = h.H5.Impath
-		p.ColList = h.H5.Colors
+		h.ColList = h.H5.Colors
 	case "0060":
 		p.Height = float32(h.H6.HoopH)
 		p.Width = float32(h.H6.HoopW)
 		p.Rot = h.H6.Rot
 		p.Desc = *h.H6.Desc
 		p.Path = h.H6.Impath
-		p.ColList = h.H6.Colors
+		h.ColList = h.H6.Colors
 	}
 	return p
 }
@@ -1034,7 +1088,7 @@ func Read_pes(file string) *shared.Payload {
 	H2.Parse(PecBin[count:])
 
 	pay.Head = H1.Label[2:]
-	pay.Palette_type, pay.Palette = convert_colors(pay.ColList, H1.ColIdx)
+	pay.Palette_type, pay.Palette = convert_colors(pes_hdr.ColList, H1.ColIdx)
 
 	var cmds []shared.PCommand
 
@@ -1056,26 +1110,6 @@ func Read_pes(file string) *shared.Payload {
 	pay.Width *= expand
 	pay.Height *= expand
 	return &pay
-}
-
-// convert_colors decodes the pes color_subs or uses the brother palette to
-// create a specific palette for this design
-func convert_colors(c []shared.ColorSub, p []byte) (bool, []color.Color) {
-	var cols []color.Color
-	var t bool = true
-	if c != nil {
-		for h := range c {
-			cols = append(cols, c[h].Color)
-		}
-	} else {
-		t = false
-		palette := Brother_select()
-		for i := 0; i < len(p); i++ {
-			cols = append(cols, palette[p[i]-1]) // 1 based index not 0
-			//		fmt.Println(i, p[i])
-		}
-	}
-	return t, cols
 }
 
 // defines of the Brother palette thread colors

@@ -149,7 +149,7 @@ func read_cmds(bin []byte, cols []uint32, f func() int) []shared.PCommand {
 		Color:    int(cols[f()] + 1),
 	}
 
-	var cmds []shared.PCommand
+	var cmds []shared.PCommand // some file formats have a null first command. Add to make same
 	cmds = append(cmds, cmd)
 
 	count := uint32(0)
@@ -191,6 +191,7 @@ FORLOOP:
 				}
 			}
 		} else {
+			// stitch
 			cmd.Command1 = shared.Stitch
 			cmd.Dx = float32(int(b0)) * expand
 			cmd.Dy = float32(int(b1)*-1) * expand
