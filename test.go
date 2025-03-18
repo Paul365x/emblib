@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/skratchdot/open-golang/open"
+
 	"github.com/emblib/adapters/jef"
 	"github.com/emblib/adapters/pes_pec"
 	"github.com/emblib/adapters/shared"
@@ -17,6 +19,10 @@ var file string = "designs/ATG12847.pes"
 //"designs/ATG12847.jef"
 
 func main() {
+	open.Run("D1124.jpg")
+
+	return
+
 	var pay *shared.Payload
 
 	file_type := strings.ToLower(filepath.Ext(file))
