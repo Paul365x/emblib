@@ -16,6 +16,7 @@ type FyneComposer struct {
 	img    *fyne.Container
 	ox     float32
 	oy     float32
+	name   string
 }
 
 func NewFyneComposer() *FyneComposer {
@@ -26,14 +27,16 @@ func NewFyneComposer() *FyneComposer {
 		img:    nil,
 		ox:     0.0,
 		oy:     0.0,
+		name:   "",
 	}
 }
 
-func (c *FyneComposer) Setup(ox, oy float32) {
+func (c *FyneComposer) Setup(ox, oy float32, name string) {
 	c.ox = ox
 	c.oy = oy
 	c.prev = fyne.NewPos(c.ox, c.oy)
 	c.img = container.NewWithoutLayout()
+	c.name = name
 }
 
 func (c *FyneComposer) SetPos(x, y float32) {
@@ -55,7 +58,7 @@ func (c *FyneComposer) Get() any {
 
 func (c *FyneComposer) Display() {
 	c.app = app.New()
-	c.window = c.app.NewWindow("Lines")
+	c.window = c.app.NewWindow(c.name)
 	c.window.SetContent(c.img)
 	c.window.Resize(fyne.NewSize(800, 600))
 	c.window.ShowAndRun()

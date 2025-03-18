@@ -18,7 +18,7 @@ import (
  */
 
 type Composer interface {
-	Setup(ox, oy float32)
+	Setup(ox, oy float32, name string)
 	SetPos(ox, oy float32)
 	Line(ex, ey float32, c color.Color)
 	Get() any
@@ -33,19 +33,23 @@ type RenderType int
 
 const (
 	Fyne RenderType = iota + 1
+	Jpg
+	Png
 )
 
 type Engine struct {
 	RType RenderType
 	Pay   *shared.Payload
 	Comp  Composer
+	file  string
 }
 
-func NewEngine() *Engine {
+func NewEngine(file string) *Engine {
 	return &Engine{
 		RType: 0,
 		Pay:   nil,
 		Comp:  nil,
+		file:  file,
 	}
 }
 
@@ -55,6 +59,10 @@ func (e *Engine) Setup(t RenderType, p *shared.Payload) {
 	switch t {
 	case Fyne:
 		e.Comp = NewFyneComposer()
+	case Jpg:
+		e.Comp = NewJpgComposer()
+	case Png:
+		e.Comp = NewPngComposer()
 	}
 }
 
@@ -73,7 +81,7 @@ func (e *Engine) Run() {
 	col_idx := 0
 	i := 0
 	comp := e.Comp
-	comp.Setup(e.Pay.Width/2, e.Pay.Height/2) // all stitches are offset from centre
+	comp.Setup(e.Pay.Width/2, e.Pay.Height/2, e.file) // all stitches are offset from centre
 
 	for p := range cmds {
 		if p == 0 && cmds[p].Dx == 0 && cmds[p].Dy == 0 {

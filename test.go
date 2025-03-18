@@ -4,8 +4,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/skratchdot/open-golang/open"
-
 	"github.com/emblib/adapters/jef"
 	"github.com/emblib/adapters/pes_pec"
 	"github.com/emblib/adapters/shared"
@@ -19,9 +17,6 @@ var file string = "designs/ATG12847.pes"
 //"designs/ATG12847.jef"
 
 func main() {
-	open.Run("D1124.jpg")
-
-	return
 
 	var pay *shared.Payload
 
@@ -33,8 +28,8 @@ func main() {
 		pay = jef.Read_jef(file)
 	}
 
-	render := engine.NewEngine()
-	render.Setup(engine.Fyne, pay)
+	render := engine.NewEngine(file)
+	render.Setup(engine.Jpg, pay)
 	render.Run()
 	render.Display()
 
