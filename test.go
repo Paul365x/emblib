@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -14,7 +15,7 @@ var file string = "designs/ATG12847.pes"
 
 //"designs/D1124.pes"
 
-//"designs/ATG12847.jef"
+//"designs/ATG12847.p"
 
 func main() {
 
@@ -29,8 +30,10 @@ func main() {
 	}
 
 	render := engine.NewEngine(file)
-	render.Setup(engine.Jpg, pay)
+	render.Setup(engine.Png, pay)
 	render.Run()
 	render.Display()
+
+	fmt.Println("returning") // prints so we can do something else after display
 
 }
