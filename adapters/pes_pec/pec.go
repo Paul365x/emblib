@@ -1060,6 +1060,8 @@ func decode_pes(h Header) shared.Payload {
 func Read_pes(file string) *shared.Payload {
 	var pay shared.Payload
 
+	pay.Title = file
+
 	// get the actual file contents
 	reader, err := os.Open(file)
 	if err != nil {

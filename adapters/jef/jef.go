@@ -153,10 +153,8 @@ func read_cmds(bin []byte, cols []uint32, f func() int) []shared.PCommand {
 	cmds = append(cmds, cmd)
 
 	count := uint32(0)
-	var loc uint32
 FORLOOP:
 	for {
-		loc = count
 		b0 := int8(bin[count])
 		count++
 		b1 := int8(bin[count])
@@ -200,9 +198,6 @@ FORLOOP:
 			break
 		}
 		cmds = append(cmds, cmd)
-		//	if jef_decode_cmd(cmd.Command1) != "Stitch" {
-		fmt.Printf("%d %d %d\t%d\t%s\t%f %f %d\n", b0, b1, len(cmds), loc, jef_decode_cmd(cmd.Command1), cmd.Dx, cmd.Dy, cmd.Color)
-		//	}
 	}
 	return cmds
 } // read_cmds()
@@ -269,7 +264,6 @@ func Read_jef(file string) *shared.Payload {
 
 	var jef Jef_header
 	jef.Parse(bin)
-	jef.Dump()
 	c := jef.SizeOf()
 	pay = decode_jef(jef)
 	pay.Palette = Janome_select()

@@ -7,10 +7,8 @@ package shared
 
 import (
 	"image/color"
-	"os"
+	// "os"
 )
-
-var fh *os.File = os.Stdout
 
 // PCommand is a struct to hold a command - jump, trim, stitch etc
 type PCommand struct {
@@ -27,6 +25,7 @@ type Payload struct {
 	Height       float32
 	Rot          uint16
 	Desc         map[string]string
+	Title        string
 	BG           color.Color
 	Path         string
 	Palette      []color.Color
